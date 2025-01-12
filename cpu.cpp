@@ -7,7 +7,7 @@ CPU::CPU(const vector<u8>& rom_bytes)
     this->ram.fill(0);
     this->A = this->B = this->C = this->D = this->E = 0;
     this->H = this->L = this->program_counter = 0;
-    this->stack_pointer = 0;
+    this->stack.pointer = 0;
     this->flags.as_byte = 0;
 }
 
@@ -21,6 +21,13 @@ u8 CPU::next_byte()
     }
 
     return 0;
+}
+
+u16 CPU::next_address()
+{
+    const u8 low = this->next_byte();
+    const u8 high = this->next_byte();
+    return high << 8 | low;
 }
 
 void CPU::cpu_tick()
@@ -153,6 +160,106 @@ void CPU::cpu_tick()
     else if (opcode == 0x1B) this->dcx(CPURegister::DE);
     else if (opcode == 0x2B) this->dcx(CPURegister::HL);
     else if (opcode == 0x3B) this->dcx(CPURegister::SP);
+    else if (opcode == 0x57) this->add(CPURegister::A);
+    else if (opcode == 0x50) this->add(CPURegister::B);
+    else if (opcode == 0x51) this->add(CPURegister::C);
+    else if (opcode == 0x52) this->add(CPURegister::D);
+    else if (opcode == 0x53) this->add(CPURegister::E);
+    else if (opcode == 0x54) this->add(CPURegister::H);
+    else if (opcode == 0x55) this->add(CPURegister::L);
+    else if (opcode == 0x56) this->add(CPURegister::RAM);
+    else if (opcode == 0xC6) this->adi(this->next_byte());
+    else if (opcode == 0x8F) this->adc(CPURegister::A);
+    else if (opcode == 0x58) this->adc(CPURegister::B);
+    else if (opcode == 0x59) this->adc(CPURegister::C);
+    else if (opcode == 0x8A) this->adc(CPURegister::D);
+    else if (opcode == 0x8B) this->adc(CPURegister::E);
+    else if (opcode == 0x8C) this->adc(CPURegister::H);
+    else if (opcode == 0x8D) this->adc(CPURegister::L);
+    else if (opcode == 0x8E) this->adc(CPURegister::RAM);
+    else if (opcode == 0xCE) this->aci(this->next_byte());
+    else if (opcode == 0x61) this->sub(CPURegister::A);
+    else if (opcode == 0x5A) this->sub(CPURegister::B);
+    else if (opcode == 0x5B) this->sub(CPURegister::C);
+    else if (opcode == 0x5C) this->sub(CPURegister::D);
+    else if (opcode == 0x5D) this->sub(CPURegister::E);
+    else if (opcode == 0x5E) this->sub(CPURegister::H);
+    else if (opcode == 0x5F) this->sub(CPURegister::L);
+    else if (opcode == 0x60) this->sub(CPURegister::RAM);
+    else if (opcode == 0xD6) this->sui(this->next_byte());
+    else if (opcode == 0x9F) this->sbb(CPURegister::A);
+    else if (opcode == 0x62) this->sbb(CPURegister::B);
+    else if (opcode == 0x63) this->sbb(CPURegister::C);
+    else if (opcode == 0x9A) this->sbb(CPURegister::D);
+    else if (opcode == 0x9B) this->sbb(CPURegister::E);
+    else if (opcode == 0x9C) this->sbb(CPURegister::H);
+    else if (opcode == 0x9D) this->sbb(CPURegister::L);
+    else if (opcode == 0x9E) this->sbb(CPURegister::RAM);
+    else if (opcode == 0xDE) this->sbi(this->next_byte());
+    else if (opcode == 0xBF) this->cmp(CPURegister::A);
+    else if (opcode == 0xB8) this->cmp(CPURegister::B);
+    else if (opcode == 0xB9) this->cmp(CPURegister::C);
+    else if (opcode == 0xBA) this->cmp(CPURegister::D);
+    else if (opcode == 0xBB) this->cmp(CPURegister::E);
+    else if (opcode == 0xBC) this->cmp(CPURegister::H);
+    else if (opcode == 0xBD) this->cmp(CPURegister::L);
+    else if (opcode == 0xBE) this->cmp(CPURegister::RAM);
+    else if (opcode == 0xFE) this->cpi(this->next_byte());
+    else if (opcode == 0xC5) this->push(CPURegister::BC);
+    else if (opcode == 0xD5) this->push(CPURegister::DE);
+    else if (opcode == 0xE5) this->push(CPURegister::HL);
+    else if (opcode == 0xF5) this->push(CPURegister::PSW);
+    else if (opcode == 0xC1) this->pop(CPURegister::BC);
+    else if (opcode == 0xD1) this->pop(CPURegister::DE);
+    else if (opcode == 0xE1) this->pop(CPURegister::HL);
+    else if (opcode == 0xF1) this->pop(CPURegister::PSW);
+    else if (opcode == 0xC3) this->jmp(this->next_address());
+    else if (opcode == 0xCD) this->call(this->next_address());
+    else if (opcode == 0xC9) this->ret();
+    else if (opcode == 0xC7) this->rst(0x00);
+    else if (opcode == 0xCF) this->rst(0x08);
+    else if (opcode == 0xD7) this->rst(0x10);
+    else if (opcode == 0xDF) this->rst(0x18);
+    else if (opcode == 0xE7) this->rst(0x20);
+    else if (opcode == 0xEF) this->rst(0x28);
+    else if (opcode == 0xF7) this->rst(0x30);
+    else if (opcode == 0xFF) this->rst(0x38);
+    else if (opcode == 0xCA) this->jz(this->next_address());
+    else if (opcode == 0xC2) this->jnz(this->next_address());
+    else if (opcode == 0xDA) this->jc(this->next_address());
+    else if (opcode == 0xD2) this->jnc(this->next_address());
+    else if (opcode == 0xEA) this->jpe(this->next_address());
+    else if (opcode == 0xE2) this->jpo(this->next_address());
+    else if (opcode == 0xFA) this->jm(this->next_address());
+    else if (opcode == 0xF2) this->jp(this->next_address());
+    else if (opcode == 0xCC) this->cz(this->next_address());
+    else if (opcode == 0xC4) this->cnz(this->next_address());
+    else if (opcode == 0xDC) this->cc(this->next_address());
+    else if (opcode == 0xD4) this->cnc(this->next_address());
+    else if (opcode == 0xEC) this->cpe(this->next_address());
+    else if (opcode == 0xE4) this->cpo(this->next_address());
+    else if (opcode == 0xFC) this->cm(this->next_address());
+    else if (opcode == 0xF4) this->cp(this->next_address());
+    else if (opcode == 0xC8) this->rz();
+    else if (opcode == 0xC0) this->rnz();
+    else if (opcode == 0xD8) this->rc();
+    else if (opcode == 0xD0) this->rnc();
+    else if (opcode == 0xE8) this->rpe();
+    else if (opcode == 0xE0) this->rpo();
+    else if (opcode == 0xF8) this->rm();
+    else if (opcode == 0xF0) this->rp();
+    else if (opcode == 0x3A) this->lda(this->next_address());
+    else if (opcode == 0x0A) this->ldax(CPURegister::BC);
+    else if (opcode == 0x1A) this->ldax(CPURegister::DE);
+    else if (opcode == 0x01) this->lxi(CPURegister::BC, this->next_address());
+    else if (opcode == 0x0B) this->lxi(CPURegister::DE, this->next_address());
+    else if (opcode == 0x15) this->lxi(CPURegister::HL, this->next_address());
+    else if (opcode == 0x1F) this->lxi(CPURegister::SP, this->next_address());
+    else if (opcode == 0x2A) this->lhld(this->next_address());
+    else if (opcode == 0x20) this->sta(this->next_address());
+    else if (opcode == 0x02) this->stax(CPURegister::BC);
+    else if (opcode == 0x0C) this->stax(CPURegister::DE);
+    else if (opcode == 0x16) this->shld(this->next_address());
     else if (opcode) cout << "Opcode not implemented " << hex << opcode << "!\n";
 }
 
@@ -167,10 +274,11 @@ u16 CPU::read_register(const CPURegister cpu_register)
         case CPURegister::E: return this->E;
         case CPURegister::H: return this->H;
         case CPURegister::L: return this->L;
+        case CPURegister::PSW: return this->A << 8 | this->flags.as_byte;
         case CPURegister::BC: return this->B << 8 | this->C;
         case CPURegister::DE: return this->D << 8 | this->E;
         case CPURegister::HL: return this->H << 8 | this->L;
-        case CPURegister::SP: return this->stack_pointer;
+        case CPURegister::SP: return this->stack.pointer;
         case CPURegister::RAM:
         {
             const u16 address = this->H << 8 | this->L;
@@ -190,10 +298,11 @@ void CPU::write_register(const CPURegister cpu_register, const u16 value)
         case CPURegister::E: this->E = value; break;
         case CPURegister::H: this->H = value; break;
         case CPURegister::L: this->L = value; break;
+        case CPURegister::PSW: this->A = value >> 8; this->flags.as_byte = value & 0xFF; break;
         case CPURegister::BC: this->B = value >> 8; this->C = value & 0xFF; break;
         case CPURegister::DE: this->D = value >> 8; this->E = value & 0xFF; break;
         case CPURegister::HL: this->H = value >> 8; this->L = value & 0xFF; break;
-        case CPURegister::SP: this->stack_pointer = value; break;
+        case CPURegister::SP: this->stack.pointer = value; break;
         case CPURegister::RAM:
         {
             const u16 address = this->H << 8 | this->L;
@@ -335,12 +444,362 @@ void CPU::dcx(const CPURegister target)
     this->flags.as_bits.carry = this->flags.as_bits.aux_carry = old_value == 0;
 }
 
+void CPU::add(const CPURegister target)
+{
+    //add target to accumulator
+    this->adi(this->read_register(target));
+}
+
+void CPU::adi(const u16 value)
+{
+    //add value to accumulator
+    const u16 new_value = this->A + value;
+    this->A = new_value;
+    this->update_arithmetic_flags(new_value);
+}
+
+void CPU::adc(const CPURegister target)
+{
+    //add with carry target to accumulator
+    this->aci(this->read_register(target));
+}
+
+void CPU::aci(const u16 value)
+{
+    //add with carry value to accumulator
+    const u16 new_value = this->A + value + this->flags.as_bits.carry;
+    this->A = new_value;
+    this->update_arithmetic_flags(new_value);
+}
+
+void CPU::sub(const CPURegister target)
+{
+    //subtract target from accumulator
+    this->sui(this->read_register(target));
+}
+
+void CPU::sui(const u16 value)
+{
+    //subtract value from accumulator
+    const i16 new_value = this->A - value;
+    this->A = new_value;
+    this->update_arithmetic_flags(new_value);
+    this->flags.as_bits.carry = this->flags.as_bits.aux_carry = new_value < 0 || new_value > 0xFF;
+}
+
+void CPU::sbb(const CPURegister target)
+{
+    //subtract target with carry from accumulator
+    this->sbi(this->read_register(target));
+}
+
+void CPU::sbi(const u16 value)
+{
+    //subtract value with carry from accumulator
+    const i16 new_value = this->A - value - this->flags.as_bits.carry;
+    this->A = new_value;
+    this->update_arithmetic_flags(new_value);
+    this->flags.as_bits.carry = this->flags.as_bits.aux_carry = new_value < 0 || new_value > 0xFF;
+}
+
+void CPU::cmp(const CPURegister target)
+{
+    //compare target with accumulator
+    this->cpi(this->read_register(target));
+}
+
+void CPU::cpi(const u16 value)
+{
+    //compare value with accumulator
+    const i16 new_value = this->A - value;
+    this->update_arithmetic_flags(new_value);
+    this->flags.as_bits.carry = this->flags.as_bits.aux_carry = new_value < 0 || new_value > 0xFF;
+}
+
+void CPUStack::push_byte(array<u8, RAM_SIZE>& ram, const u8 value)
+{
+    ram[this->pointer % RAM_SIZE] = value;
+    this->pointer--;
+}
+
+void CPUStack::push_address(array<u8, RAM_SIZE>& ram, const u16 address)
+{
+    this->push_byte(ram, address >> 8);
+    this->push_byte(ram, address & 0xFF);
+}
+
+u8 CPUStack::pop_byte(const array<u8, RAM_SIZE>& ram)
+{
+    this->pointer++;
+    return ram[this->pointer % RAM_SIZE];
+}
+
+u16 CPUStack::pop_address(const array<u8, RAM_SIZE>& ram)
+{
+    const u8 low = this->pop_byte(ram);
+    const u8 high = this->pop_byte(ram);
+    return high << 8 | low;
+}
+
+void CPU::push(const CPURegister from)
+{
+    //push the stack
+    const u16 value = this->read_register(from);
+    this->stack.push_address(this->ram, value);
+}
+
+void CPU::pop(const CPURegister to)
+{
+    //pop the stack
+    const u16 value = this->stack.pop_address(this->ram);
+    this->write_register(to, value);
+}
+
+void CPU::jmp(const u16 address)
+{
+    //goto / jump
+    this->program_counter = address;
+}
+
+void CPU::call(const u16 address)
+{
+    //jump to subroutine
+    this->stack.push_address(this->ram, this->program_counter);
+    this->program_counter = address;
+}
+
+void CPU::ret()
+{
+    //return from subroutine
+    this->program_counter = this->stack.pop_address(this->ram);
+}
+
+void CPU::rst(const u16 address)
+{
+    //call subroutine at address
+    this->call(address);
+}
+
+void CPU::jz(const u16 address)
+{
+    //jump if zero
+    if (this->flags.as_bits.zero)
+        this->jmp(address);
+}
+
+void CPU::cz(const u16 address)
+{
+    //jump to subroutine if zero
+    if (this->flags.as_bits.zero)
+        this->call(address);
+}
+
+void CPU::rz()
+{
+    //return from subroutine if zero
+    if (this->flags.as_bits.zero)
+        this->ret();
+}
+
+void CPU::jnz(const u16 address)
+{
+    //jump if not zero
+    if (!this->flags.as_bits.zero)
+        this->jmp(address);
+}
+
+void CPU::cnz(const u16 address)
+{
+    //jump to subroutine if not zero
+    if (!this->flags.as_bits.zero)
+        this->call(address);
+}
+
+void CPU::rnz()
+{
+    //return from subroutine if not zero
+    if (!this->flags.as_bits.zero)
+        this->ret();
+}
+
+void CPU::jc(const u16 address)
+{
+    //jump if carry
+    if (this->flags.as_bits.carry)
+        this->jmp(address);
+}
+
+void CPU::cc(const u16 address)
+{
+    //jump to subroutine if carry
+    if (this->flags.as_bits.carry)
+        this->call(address);
+}
+
+void CPU::rc()
+{
+    //return from subroutine if carry
+    if (this->flags.as_bits.carry)
+        this->ret();
+}
+
+void CPU::jnc(const u16 address)
+{
+    //jump if not carry
+    if (!this->flags.as_bits.carry)
+        this->jmp(address);
+}
+
+void CPU::cnc(const u16 address)
+{
+    //jump to subroutine if not carry
+    if (!this->flags.as_bits.carry)
+        this->call(address);
+}
+
+void CPU::rnc()
+{
+    //return from subroutine if not carry
+    if (!this->flags.as_bits.carry)
+        this->ret();
+}
+
+void CPU::jpe(const u16 address)
+{
+    //jump if even
+    if (this->flags.as_bits.even)
+        this->jmp(address);
+}
+
+void CPU::cpe(const u16 address)
+{
+    //jump to subroutine if even
+    if (this->flags.as_bits.even)
+        this->call(address);
+}
+
+void CPU::rpe()
+{
+    //return from subroutine if even
+    if (this->flags.as_bits.even)
+        this->ret();
+}
+
+void CPU::jpo(const u16 address)
+{
+    //jump if odd
+    if (!this->flags.as_bits.even)
+        this->jmp(address);
+}
+
+void CPU::cpo(const u16 address)
+{
+    //jump to subroutine if odd
+    if (!this->flags.as_bits.even)
+        this->call(address);
+}
+
+void CPU::rpo()
+{
+    //return from subroutine if odd
+    if (!this->flags.as_bits.even)
+        this->ret();
+}
+
+void CPU::jm(const u16 address)
+{
+    //jump if negative
+    if (this->flags.as_bits.negative)
+        this->jmp(address);
+}
+
+void CPU::cm(const u16 address)
+{
+    //jump to subroutine if negative
+    if (this->flags.as_bits.negative)
+        this->call(address);
+}
+
+void CPU::rm()
+{
+    //return from subroutine if negative
+    if (this->flags.as_bits.negative)
+        this->ret();
+}
+
+void CPU::jp(const u16 address)
+{
+    //jump if positive
+    if (!this->flags.as_bits.negative)
+        this->jmp(address);
+}
+
+void CPU::cp(const u16 address)
+{
+    //jump to subroutine if positive
+    if (!this->flags.as_bits.negative)
+        this->call(address);
+}
+
+void CPU::rp()
+{
+    //return from subroutine if positive
+    if (!this->flags.as_bits.negative)
+        this->ret();
+}
+
 void CPU::update_arithmetic_flags(const u16 value)
 {
+    //update flags after arithmetic operation
     this->flags.as_bits.zero = (value & 0xFF) == 0;
     this->flags.as_bits.negative = (value & 0xFF) > 0x7F;
     this->flags.as_bits.even = (value & 0xFF) % 2 == 0;
     this->flags.as_bits.carry = this->flags.as_bits.aux_carry = value > 0xFF;
+}
+
+void CPU::lda(const u16 address)
+{
+    //load accumulator with value from RAM at address
+    this->A = this->ram[address % RAM_SIZE];
+}
+
+void CPU::ldax(const CPURegister from)
+{
+    //load accumulator with value from register
+    this->A = this->read_register(from);
+}
+
+void CPU::lxi(const CPURegister to, const u16 address)
+{
+    //load register with value from RAM at address
+    const u16 value = this->ram[address % RAM_SIZE];
+    this->write_register(to, value);
+}
+
+void CPU::lhld(const u16 address)
+{
+    //load L,H registers with values from RAM at address
+    this->L = this->ram[address % RAM_SIZE];
+    this->H = this->ram[(address + 1) % RAM_SIZE];
+}
+
+void CPU::sta(const u16 address)
+{
+    //store accumulator into RAM at address
+    this->ram[address % RAM_SIZE] = this->A;
+}
+
+void CPU::stax(const CPURegister to)
+{
+    //store accumulator into register
+    this->write_register(to, this->A);
+}
+
+void CPU::shld(const u16 address)
+{
+    //store L,H registers into RAM at address
+    this->ram[address % RAM_SIZE] = this->L;
+    this->ram[(address + 1) % RAM_SIZE] = this->H;
 }
 
 void CPU::run()
