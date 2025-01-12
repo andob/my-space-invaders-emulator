@@ -2,50 +2,25 @@
 #define CPU_H
 
 #include "constants.h"
+#include "cpu/flags.h"
+#include "cpu/registers.h"
+#include "cpu/stack.h"
 #include <array>
 #include <vector>
 
 using namespace std;
 
-union CPUFlags
-{
-    struct
-    {
-        bool negative : 1;
-        bool zero : 1;
-        bool reserved1 : 1;
-        bool aux_carry : 1;
-        bool reserved2 : 1;
-        bool even : 1;
-        bool reserved3 : 1;
-        bool carry : 1;
-    } as_bits;
-    u8 as_byte;
-};
-
-enum CPURegister
-{cpu
-    A, B, C, D, E, H, L,
-    PSW, BC, DE, HL, SP, RAM
-};
-
-class CPUStack
-{
-public:
-    u16 pointer;
-    void push_byte(array<u8, RAM_SIZE>& ram, u8 value);
-    void push_address(array<u8, RAM_SIZE>& ram, u16 address);
-    u8 pop_byte(const array<u8, RAM_SIZE>& ram);
-    u16 pop_address(const array<u8, RAM_SIZE>& ram);
-};
-
 class CPU
 {
-    array<u8, RAM_SIZE> ram;
+    array<u8, RAM_SIZE>& ram;
     u8 A, B, C, D, E, H, L;
     u16 program_counter;
     CPUStack stack;
     CPUFlags flags;
+    u16 shift_register;
+    u8 shift_register_offset;
+    //todo implement interrupts
+    bool are_interrupts_enabled;
 
     u8 next_byte();
     u16 next_address();
@@ -54,6 +29,8 @@ class CPU
 
     u16 read_register(CPURegister register);
     void write_register(CPURegister register, u16 value);
+
+    void update_arithmetic_flags(u16 value);
 
     void mov(CPURegister from, CPURegister to);
     void mvi(u16 value, CPURegister to);
@@ -115,14 +92,25 @@ class CPU
     void ldax(CPURegister from);
     void lxi(CPURegister to, u16 address);
     void lhld(u16 address);
-    void sta(u16 address);
+    void sta(u16 address) const;
     void stax(CPURegister to);
-    void shld(u16 address);
-
-    void update_arithmetic_flags(u16 value);
+    void shld(u16 address) const;
+    void dad(CPURegister target);
+    void cma();
+    void stc();
+    void cmc();
+    void pchl();
+    void sphl();
+    void xchg();
+    void xthl();
+    void di();
+    void ei();
+    void daa();
+    void in(u8 command);
+    void out(u8 command);
 
 public:
-    explicit CPU(const vector<u8>& rom_bytes);
+    explicit CPU(array<u8, RAM_SIZE>& ram);
 
     void run();
 };

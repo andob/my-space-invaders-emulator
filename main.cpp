@@ -33,7 +33,12 @@ int main(const int argc, char** argv)
         istreambuf_iterator<char>(),
         back_inserter(rom_file_bytes));
 
-    unique_ptr<CPU> cpu(new CPU(rom_file_bytes));
+    //todo how is rom loaded into ram?
+    //todo how is display rendered?
+    array<u8, RAM_SIZE> ram;
+    ram.fill(0);
+
+    const unique_ptr<CPU> cpu(new CPU(ram));
     while (true) cpu->run();
 
     return EXIT_SUCCESS;

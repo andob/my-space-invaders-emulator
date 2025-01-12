@@ -1,14 +1,15 @@
 #include "cpu.h"
 #include <iostream>
 
-CPU::CPU(const vector<u8>& rom_bytes)
+CPU::CPU(array<u8, RAM_SIZE>& ram) : ram(ram), stack(CPUStack(ram))
 {
     //initialise fields
-    this->ram.fill(0);
     this->A = this->B = this->C = this->D = this->E = 0;
     this->H = this->L = this->program_counter = 0;
-    this->stack.pointer = 0;
     this->flags.as_byte = 0;
+    this->shift_register = 0;
+    this->shift_register_offset = 0;
+    this->are_interrupts_enabled = true;
 }
 
 u8 CPU::next_byte()
@@ -33,6 +34,7 @@ u16 CPU::next_address()
 void CPU::cpu_tick()
 {
     //https://grantmestrength.github.io/RetroComputerInstructionManual/intel8080.html
+    //todo check opcode hex codes
     const u8 opcode = this->next_byte();
     if (opcode == 0x7F) this->mov(CPURegister::A, CPURegister::A);
     else if (opcode == 0x2F) this->mov(CPURegister::A, CPURegister::B);
@@ -147,7 +149,7 @@ void CPU::cpu_tick()
     else if (opcode == 0x03) this->inx(CPURegister::BC);
     else if (opcode == 0x0D) this->inx(CPURegister::DE);
     else if (opcode == 0x17) this->inx(CPURegister::HL);
-    else if (opcode == 0x21) this->inx(CPURegister::SP);
+    else if (opcode == 0x21) this->inx(CPURegister::StackPointer);
     else if (opcode == 0x3D) this->dcr(CPURegister::A);
     else if (opcode == 0x05) this->dcr(CPURegister::B);
     else if (opcode == 0x0D) this->dcr(CPURegister::C);
@@ -159,7 +161,7 @@ void CPU::cpu_tick()
     else if (opcode == 0x0B) this->dcx(CPURegister::BC);
     else if (opcode == 0x1B) this->dcx(CPURegister::DE);
     else if (opcode == 0x2B) this->dcx(CPURegister::HL);
-    else if (opcode == 0x3B) this->dcx(CPURegister::SP);
+    else if (opcode == 0x3B) this->dcx(CPURegister::StackPointer);
     else if (opcode == 0x57) this->add(CPURegister::A);
     else if (opcode == 0x50) this->add(CPURegister::B);
     else if (opcode == 0x51) this->add(CPURegister::C);
@@ -254,12 +256,28 @@ void CPU::cpu_tick()
     else if (opcode == 0x01) this->lxi(CPURegister::BC, this->next_address());
     else if (opcode == 0x0B) this->lxi(CPURegister::DE, this->next_address());
     else if (opcode == 0x15) this->lxi(CPURegister::HL, this->next_address());
-    else if (opcode == 0x1F) this->lxi(CPURegister::SP, this->next_address());
+    else if (opcode == 0x1F) this->lxi(CPURegister::StackPointer, this->next_address());
     else if (opcode == 0x2A) this->lhld(this->next_address());
     else if (opcode == 0x20) this->sta(this->next_address());
     else if (opcode == 0x02) this->stax(CPURegister::BC);
     else if (opcode == 0x0C) this->stax(CPURegister::DE);
     else if (opcode == 0x16) this->shld(this->next_address());
+    else if (opcode == 0x09) this->dad(CPURegister::BC);
+    else if (opcode == 0x13) this->dad(CPURegister::DE);
+    else if (opcode == 0x1D) this->dad(CPURegister::HL);
+    else if (opcode == 0x27) this->dad(CPURegister::StackPointer);
+    else if (opcode == 0x2F) this->cma();
+    else if (opcode == 0x25) this->stc();
+    else if (opcode == 0x3F) this->cmc();
+    else if (opcode == 0xE9) this->pchl();
+    else if (opcode == 0xF9) this->sphl();
+    else if (opcode == 0xEB) this->xchg();
+    else if (opcode == 0xE3) this->xthl();
+    else if (opcode == 0xF3) this->di();
+    else if (opcode == 0xFB) this->ei();
+    else if (opcode == 0x1B) this->daa();
+    else if (opcode == 0xD3) this->out(this->next_byte());
+    else if (opcode == 0xDB) this->in(this->next_byte());
     else if (opcode) cout << "Opcode not implemented " << hex << opcode << "!\n";
 }
 
@@ -278,7 +296,8 @@ u16 CPU::read_register(const CPURegister cpu_register)
         case CPURegister::BC: return this->B << 8 | this->C;
         case CPURegister::DE: return this->D << 8 | this->E;
         case CPURegister::HL: return this->H << 8 | this->L;
-        case CPURegister::SP: return this->stack.pointer;
+        case CPURegister::StackPointer: return this->stack.get_pointer();
+        case CPURegister::ProgramCounter: return this->program_counter;
         case CPURegister::RAM:
         {
             const u16 address = this->H << 8 | this->L;
@@ -302,7 +321,8 @@ void CPU::write_register(const CPURegister cpu_register, const u16 value)
         case CPURegister::BC: this->B = value >> 8; this->C = value & 0xFF; break;
         case CPURegister::DE: this->D = value >> 8; this->E = value & 0xFF; break;
         case CPURegister::HL: this->H = value >> 8; this->L = value & 0xFF; break;
-        case CPURegister::SP: this->stack.pointer = value; break;
+        case CPURegister::StackPointer: this->stack.set_pointer(value); break;
+        case CPURegister::ProgramCounter: this->program_counter = value; break;
         case CPURegister::RAM:
         {
             const u16 address = this->H << 8 | this->L;
@@ -310,6 +330,15 @@ void CPU::write_register(const CPURegister cpu_register, const u16 value)
             break;
         }
     }
+}
+
+void CPU::update_arithmetic_flags(const u16 value)
+{
+    //update flags after arithmetic operation
+    this->flags.as_bits.zero = (value & 0xFF) == 0;
+    this->flags.as_bits.negative = (value & 0xFF) > 0x7F;
+    this->flags.as_bits.even = (value & 0xFF) % 2 == 0;
+    this->flags.as_bits.carry = this->flags.as_bits.aux_carry = value > 0xFF;
 }
 
 void CPU::mov(const CPURegister from, const CPURegister to)
@@ -516,42 +545,17 @@ void CPU::cpi(const u16 value)
     this->flags.as_bits.carry = this->flags.as_bits.aux_carry = new_value < 0 || new_value > 0xFF;
 }
 
-void CPUStack::push_byte(array<u8, RAM_SIZE>& ram, const u8 value)
-{
-    ram[this->pointer % RAM_SIZE] = value;
-    this->pointer--;
-}
-
-void CPUStack::push_address(array<u8, RAM_SIZE>& ram, const u16 address)
-{
-    this->push_byte(ram, address >> 8);
-    this->push_byte(ram, address & 0xFF);
-}
-
-u8 CPUStack::pop_byte(const array<u8, RAM_SIZE>& ram)
-{
-    this->pointer++;
-    return ram[this->pointer % RAM_SIZE];
-}
-
-u16 CPUStack::pop_address(const array<u8, RAM_SIZE>& ram)
-{
-    const u8 low = this->pop_byte(ram);
-    const u8 high = this->pop_byte(ram);
-    return high << 8 | low;
-}
-
 void CPU::push(const CPURegister from)
 {
     //push the stack
     const u16 value = this->read_register(from);
-    this->stack.push_address(this->ram, value);
+    this->stack.push_address(value);
 }
 
 void CPU::pop(const CPURegister to)
 {
     //pop the stack
-    const u16 value = this->stack.pop_address(this->ram);
+    const u16 value = this->stack.pop_address();
     this->write_register(to, value);
 }
 
@@ -564,14 +568,14 @@ void CPU::jmp(const u16 address)
 void CPU::call(const u16 address)
 {
     //jump to subroutine
-    this->stack.push_address(this->ram, this->program_counter);
+    this->stack.push_address(this->program_counter);
     this->program_counter = address;
 }
 
 void CPU::ret()
 {
     //return from subroutine
-    this->program_counter = this->stack.pop_address(this->ram);
+    this->program_counter = this->stack.pop_address();
 }
 
 void CPU::rst(const u16 address)
@@ -748,15 +752,6 @@ void CPU::rp()
         this->ret();
 }
 
-void CPU::update_arithmetic_flags(const u16 value)
-{
-    //update flags after arithmetic operation
-    this->flags.as_bits.zero = (value & 0xFF) == 0;
-    this->flags.as_bits.negative = (value & 0xFF) > 0x7F;
-    this->flags.as_bits.even = (value & 0xFF) % 2 == 0;
-    this->flags.as_bits.carry = this->flags.as_bits.aux_carry = value > 0xFF;
-}
-
 void CPU::lda(const u16 address)
 {
     //load accumulator with value from RAM at address
@@ -783,7 +778,7 @@ void CPU::lhld(const u16 address)
     this->H = this->ram[(address + 1) % RAM_SIZE];
 }
 
-void CPU::sta(const u16 address)
+void CPU::sta(const u16 address) const
 {
     //store accumulator into RAM at address
     this->ram[address % RAM_SIZE] = this->A;
@@ -795,11 +790,134 @@ void CPU::stax(const CPURegister to)
     this->write_register(to, this->A);
 }
 
-void CPU::shld(const u16 address)
+void CPU::shld(const u16 address) const
 {
     //store L,H registers into RAM at address
     this->ram[address % RAM_SIZE] = this->L;
     this->ram[(address + 1) % RAM_SIZE] = this->H;
+}
+
+void CPU::dad(const CPURegister target)
+{
+    //add target to HL
+    const u32 old_target_value = this->read_register(target);
+    const u32 old_hl_value = this->read_register(CPURegister::HL);
+    const u32 new_hl_value = old_hl_value + old_target_value;
+    this->write_register(CPURegister::HL, new_hl_value);
+    this->update_arithmetic_flags(new_hl_value);
+    this->flags.as_bits.carry = this->flags.as_bits.aux_carry = new_hl_value > 0xFFFF;
+}
+
+void CPU::cma()
+{
+    //bitwise negate accumulator
+    this->A = ~this->A;
+}
+
+void CPU::stc()
+{
+    //set carry flag
+    this->flags.as_bits.carry = true;
+}
+
+void CPU::cmc()
+{
+    //toggle carry flag
+    this->flags.as_bits.carry = !this->flags.as_bits.carry;
+}
+
+void CPU::pchl()
+{
+    //copy H,L into program counter
+    const u16 value = this->read_register(CPURegister::HL);
+    this->write_register(CPURegister::ProgramCounter, value);
+}
+
+void CPU::sphl()
+{
+    //copy H,L into stack pointer
+    const u16 value = this->read_register(CPURegister::HL);
+    this->write_register(CPURegister::StackPointer, value);
+}
+
+void CPU::xchg()
+{
+    //exchange HL with DE
+    const u16 hl = this->read_register(CPURegister::HL);
+    const u16 de = this->read_register(CPURegister::DE);
+    this->write_register(CPURegister::HL, de);
+    this->write_register(CPURegister::DE, hl);
+}
+
+void CPU::xthl()
+{
+    //exchange HL with value at RAM address stack pointer
+    const u16 stack_pointer = this->stack.get_pointer();
+    const u8 stack_first_value = this->ram[stack_pointer % RAM_SIZE];
+    const u8 stack_second_value = this->ram[(stack_pointer + 1) % RAM_SIZE];
+    this->ram[stack_pointer % RAM_SIZE] = this->L;
+    this->ram[(stack_pointer + 1) % RAM_SIZE] = this->H;
+    this->L = stack_first_value;
+    this->H = stack_second_value;
+}
+
+void CPU::di()
+{
+    //disable interrupts
+    this->are_interrupts_enabled = false;
+}
+
+void CPU::ei()
+{
+    //enable interrupts
+    this->are_interrupts_enabled = true;
+}
+
+void CPU::daa()
+{
+    const u8 lsb = this->A & 0x0F;
+    u8 msb = (this->A & 0xF0) >> 4;
+    if (lsb > 9 || this->flags.as_bits.aux_carry)
+    {
+        this->A += 6;
+        this->flags.as_bits.aux_carry = (lsb + 6) > 0x0F;
+    }
+
+    if (msb > 9 || this->flags.as_bits.carry) { msb += 6; }
+    this->A = (msb << 4) | (this->A & 0x0F);
+    this->flags.as_bits.aux_carry = (msb + 6) > 0x0F;
+    this->update_arithmetic_flags(this->A);
+}
+
+void CPU::in(const u8 command)
+{
+    if (command == 1)
+    {
+        //todo implement in1: Player 1 keyboard
+    }
+    else if (command == 2)
+    {
+        //todo implement in2: Player 2 keyboard
+    }
+    else if (command == 3)
+    {
+        const u8 shift_amount = 8 - this->shift_register_offset;
+        this->A = this->shift_register >> shift_amount;
+    }
+}
+
+void CPU::out(const u8 command)
+{
+    if (command == 2)
+    {
+        this->shift_register_offset = this->A & 0x07;
+    }
+    else if (command == 4)
+    {
+        const u16 left = static_cast<u16>(this->A) << 8;
+        const u16 right = this->shift_register >> 8;
+        this->shift_register = left | right;
+    }
 }
 
 void CPU::run()
