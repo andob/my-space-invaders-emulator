@@ -4,6 +4,7 @@
 #include <vector>
 #include "constants.h"
 #include "cpu.h"
+#include "emulator.h"
 
 using namespace std;
 
@@ -33,13 +34,8 @@ int main(const int argc, char** argv)
         istreambuf_iterator<char>(),
         back_inserter(rom_file_bytes));
 
-    //todo how is rom loaded into ram?
-    //todo how is display rendered?
-    array<u8, RAM_SIZE> ram;
-    ram.fill(0);
-
-    const unique_ptr<CPU> cpu(new CPU(ram));
-    while (true) cpu->run();
+    unique_ptr<Emulator> emulator = make_unique<Emulator>(rom_file_bytes);
+    emulator->run();
 
     return EXIT_SUCCESS;
 }

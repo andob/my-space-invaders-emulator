@@ -1,36 +1,27 @@
 #include "stack.h"
+#include "../cpu.h"
 
-u16 CPUStack::get_pointer() const
+void CPUStack::push_byte(const CPU* cpu, const u8 value)
 {
-    return this->pointer;
-}
-
-void CPUStack::set_pointer(const u16 address)
-{
-    this->pointer = address;
-}
-
-void CPUStack::push_byte(const u8 value)
-{
-    this->ram[this->pointer % RAM_SIZE] = value;
+    (*cpu->ram)[this->pointer % RAM_SIZE] = value;
     this->pointer--;
 }
 
-u8 CPUStack::pop_byte()
+u8 CPUStack::pop_byte(const CPU* cpu)
 {
     this->pointer++;
-    return ram[this->pointer % RAM_SIZE];
+    return (*cpu->ram)[this->pointer % RAM_SIZE];
 }
 
-void CPUStack::push_address(const u16 address)
+void CPUStack::push_address(const CPU* cpu, const u16 address)
 {
-    this->push_byte(address >> 8);
-    this->push_byte(address & 0xFF);
+    this->push_byte(cpu, address >> 8);
+    this->push_byte(cpu, address & 0xFF);
 }
 
-u16 CPUStack::pop_address()
+u16 CPUStack::pop_address(const CPU* cpu)
 {
-    const u8 low = this->pop_byte();
-    const u8 high = this->pop_byte();
-    return high << 8 | low;
+    const u8 low = this->pop_byte(cpu);
+    const u8 high = this->pop_byte(cpu);
+    return static_cast<u16>(high) << 8 | low;
 }

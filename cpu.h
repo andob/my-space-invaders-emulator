@@ -12,7 +12,6 @@ using namespace std;
 
 class CPU
 {
-    array<u8, RAM_SIZE>& ram;
     u8 A, B, C, D, E, H, L;
     u16 program_counter;
     CPUStack stack;
@@ -24,8 +23,6 @@ class CPU
 
     u8 next_byte();
     u16 next_address();
-
-    void cpu_tick();
 
     u16 read_register(CPURegister register);
     void write_register(CPURegister register, u16 value);
@@ -110,9 +107,13 @@ class CPU
     void out(u8 command);
 
 public:
-    explicit CPU(array<u8, RAM_SIZE>& ram);
+    unique_ptr<array<u8, RAM_SIZE>> ram;
 
-    void run();
+    explicit CPU();
+
+    void tick();
+
+    void interrupt(u16 number);
 };
 
 #endif //CPU_H

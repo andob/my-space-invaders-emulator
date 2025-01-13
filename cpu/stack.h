@@ -3,25 +3,23 @@
 
 #include "../constants.h"
 #include <array>
+#include <memory>
 
 using namespace std;
 
+class CPU;
 class CPUStack
 {
-    array<u8, RAM_SIZE>& ram;
+public:
     u16 pointer;
 
-public:
-    explicit CPUStack(array<u8, RAM_SIZE>& ram) : ram(ram), pointer(0) {}
+    explicit CPUStack() : pointer(0) {}
 
-    u16 get_pointer() const;
-    void set_pointer(u16 address);
+    void push_byte(const CPU* cpu, u8 value);
+    u8 pop_byte(const CPU* cpu);
 
-    void push_byte(u8 value);
-    u8 pop_byte();
-
-    void push_address(u16 address);
-    u16 pop_address();
+    void push_address(const CPU* cpu, u16 address);
+    u16 pop_address(const CPU* cpu);
 };
 
 #endif //STACK_H

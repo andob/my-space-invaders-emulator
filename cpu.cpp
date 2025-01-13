@@ -1,22 +1,23 @@
 #include "cpu.h"
 #include <iostream>
 
-CPU::CPU(array<u8, RAM_SIZE>& ram) : ram(ram), stack(CPUStack(ram))
+CPU::CPU()
 {
-    //initialise fields
     this->A = this->B = this->C = this->D = this->E = 0;
     this->H = this->L = this->program_counter = 0;
     this->flags.as_byte = 0;
     this->shift_register = 0;
     this->shift_register_offset = 0;
     this->are_interrupts_enabled = true;
+    this->ram = make_unique<array<u8, RAM_SIZE>>();
+    this->ram->fill(0);
 }
 
 u8 CPU::next_byte()
 {
     if (this->program_counter+1 < RAM_SIZE)
     {
-        const u8 opcode = this->ram[this->program_counter];
+        const u8 opcode = (*this->ram)[this->program_counter];
         this->program_counter++;
         return opcode;
     }
@@ -28,184 +29,186 @@ u16 CPU::next_address()
 {
     const u8 low = this->next_byte();
     const u8 high = this->next_byte();
-    return high << 8 | low;
+    return static_cast<u16>(high) << 8 | low;
 }
 
-void CPU::cpu_tick()
+void CPU::tick()
 {
     //https://grantmestrength.github.io/RetroComputerInstructionManual/intel8080.html
     //todo check opcode hex codes
     const u8 opcode = this->next_byte();
+    //todo remove this
+    // cout << uppercase << hex << this->program_counter-1 << ' ' << static_cast<int>(opcode) << endl;
     if (opcode == 0x7F) this->mov(CPURegister::A, CPURegister::A);
-    else if (opcode == 0x2F) this->mov(CPURegister::A, CPURegister::B);
-    else if (opcode == 0x4F) this->mov(CPURegister::A, CPURegister::C);
-    else if (opcode == 0x39) this->mov(CPURegister::A, CPURegister::D);
-    else if (opcode == 0x5F) this->mov(CPURegister::A, CPURegister::E);
-    else if (opcode == 0x43) this->mov(CPURegister::A, CPURegister::H);
-    else if (opcode == 0x6F) this->mov(CPURegister::A, CPURegister::L);
-    else if (opcode == 0x4D) this->mov(CPURegister::A, CPURegister::RAM);
-    else if (opcode == 0x4E) this->mov(CPURegister::B, CPURegister::A);
-    else if (opcode == 0x28) this->mov(CPURegister::B, CPURegister::B);
-    else if (opcode == 0x30) this->mov(CPURegister::B, CPURegister::C);
-    else if (opcode == 0x32) this->mov(CPURegister::B, CPURegister::D);
-    else if (opcode == 0x3A) this->mov(CPURegister::B, CPURegister::E);
-    else if (opcode == 0x3C) this->mov(CPURegister::B, CPURegister::H);
-    else if (opcode == 0x44) this->mov(CPURegister::B, CPURegister::L);
+    else if (opcode == 0x78) this->mov(CPURegister::A, CPURegister::B);
+    else if (opcode == 0x79) this->mov(CPURegister::A, CPURegister::C);
+    else if (opcode == 0x7a) this->mov(CPURegister::A, CPURegister::D);
+    else if (opcode == 0x7b) this->mov(CPURegister::A, CPURegister::E);
+    else if (opcode == 0x7c) this->mov(CPURegister::A, CPURegister::H);
+    else if (opcode == 0x7d) this->mov(CPURegister::A, CPURegister::L);
+    else if (opcode == 0x7e) this->mov(CPURegister::A, CPURegister::RAM);
+    else if (opcode == 0x47) this->mov(CPURegister::B, CPURegister::A);
+    else if (opcode == 0x40) this->mov(CPURegister::B, CPURegister::B);
+    else if (opcode == 0x41) this->mov(CPURegister::B, CPURegister::C);
+    else if (opcode == 0x42) this->mov(CPURegister::B, CPURegister::D);
+    else if (opcode == 0x43) this->mov(CPURegister::B, CPURegister::E);
+    else if (opcode == 0x44) this->mov(CPURegister::B, CPURegister::H);
+    else if (opcode == 0x45) this->mov(CPURegister::B, CPURegister::L);
     else if (opcode == 0x46) this->mov(CPURegister::B, CPURegister::RAM);
-    else if (opcode == 0x4F) this->mov(CPURegister::C, CPURegister::A);
-    else if (opcode == 0x29) this->mov(CPURegister::C, CPURegister::B);
-    else if (opcode == 0x31) this->mov(CPURegister::C, CPURegister::C);
-    else if (opcode == 0x33) this->mov(CPURegister::C, CPURegister::D);
-    else if (opcode == 0x3B) this->mov(CPURegister::C, CPURegister::E);
-    else if (opcode == 0x3D) this->mov(CPURegister::C, CPURegister::H);
-    else if (opcode == 0x45) this->mov(CPURegister::C, CPURegister::L);
-    else if (opcode == 0x47) this->mov(CPURegister::C, CPURegister::RAM);
-    else if (opcode == 0x7A) this->mov(CPURegister::D, CPURegister::A);
-    else if (opcode == 0x2A) this->mov(CPURegister::D, CPURegister::B);
-    else if (opcode == 0x4A) this->mov(CPURegister::D, CPURegister::C);
-    else if (opcode == 0x34) this->mov(CPURegister::D, CPURegister::D);
-    else if (opcode == 0x5A) this->mov(CPURegister::D, CPURegister::E);
-    else if (opcode == 0x3E) this->mov(CPURegister::D, CPURegister::H);
-    else if (opcode == 0x6A) this->mov(CPURegister::D, CPURegister::L);
-    else if (opcode == 0x48) this->mov(CPURegister::D, CPURegister::RAM);
-    else if (opcode == 0x7B) this->mov(CPURegister::E, CPURegister::A);
-    else if (opcode == 0x2B) this->mov(CPURegister::E, CPURegister::B);
-    else if (opcode == 0x4B) this->mov(CPURegister::E, CPURegister::C);
-    else if (opcode == 0x35) this->mov(CPURegister::E, CPURegister::D);
-    else if (opcode == 0x5B) this->mov(CPURegister::E, CPURegister::E);
-    else if (opcode == 0x3F) this->mov(CPURegister::E, CPURegister::H);
-    else if (opcode == 0x6B) this->mov(CPURegister::E, CPURegister::L);
-    else if (opcode == 0x49) this->mov(CPURegister::E, CPURegister::RAM);
-    else if (opcode == 0x7C) this->mov(CPURegister::H, CPURegister::A);
-    else if (opcode == 0x2C) this->mov(CPURegister::H, CPURegister::B);
-    else if (opcode == 0x4C) this->mov(CPURegister::H, CPURegister::C);
-    else if (opcode == 0x36) this->mov(CPURegister::H, CPURegister::D);
-    else if (opcode == 0x5C) this->mov(CPURegister::H, CPURegister::E);
-    else if (opcode == 0x40) this->mov(CPURegister::H, CPURegister::H);
-    else if (opcode == 0x6C) this->mov(CPURegister::H, CPURegister::L);
-    else if (opcode == 0x4A) this->mov(CPURegister::H, CPURegister::RAM);
-    else if (opcode == 0x7D) this->mov(CPURegister::L, CPURegister::A);
-    else if (opcode == 0x2D) this->mov(CPURegister::L, CPURegister::B);
-    else if (opcode == 0x4D) this->mov(CPURegister::L, CPURegister::C);
-    else if (opcode == 0x37) this->mov(CPURegister::L, CPURegister::D);
-    else if (opcode == 0x5D) this->mov(CPURegister::L, CPURegister::E);
-    else if (opcode == 0x41) this->mov(CPURegister::L, CPURegister::H);
-    else if (opcode == 0x6D) this->mov(CPURegister::L, CPURegister::L);
-    else if (opcode == 0x4B) this->mov(CPURegister::L, CPURegister::RAM);
-    else if (opcode == 0x7E) this->mov(CPURegister::RAM, CPURegister::A);
-    else if (opcode == 0x2E) this->mov(CPURegister::RAM, CPURegister::B);
-    else if (opcode == 0x4E) this->mov(CPURegister::RAM, CPURegister::C);
-    else if (opcode == 0x38) this->mov(CPURegister::RAM, CPURegister::D);
-    else if (opcode == 0x5E) this->mov(CPURegister::RAM, CPURegister::E);
-    else if (opcode == 0x42) this->mov(CPURegister::RAM, CPURegister::H);
-    else if (opcode == 0x6E) this->mov(CPURegister::RAM, CPURegister::L);
+    else if (opcode == 0x4f) this->mov(CPURegister::C, CPURegister::A);
+    else if (opcode == 0x48) this->mov(CPURegister::C, CPURegister::B);
+    else if (opcode == 0x49) this->mov(CPURegister::C, CPURegister::C);
+    else if (opcode == 0x4a) this->mov(CPURegister::C, CPURegister::D);
+    else if (opcode == 0x4b) this->mov(CPURegister::C, CPURegister::E);
+    else if (opcode == 0x4c) this->mov(CPURegister::C, CPURegister::H);
+    else if (opcode == 0x4d) this->mov(CPURegister::C, CPURegister::L);
+    else if (opcode == 0x4e) this->mov(CPURegister::C, CPURegister::RAM);
+    else if (opcode == 0x57) this->mov(CPURegister::D, CPURegister::A);
+    else if (opcode == 0x50) this->mov(CPURegister::D, CPURegister::B);
+    else if (opcode == 0x51) this->mov(CPURegister::D, CPURegister::C);
+    else if (opcode == 0x52) this->mov(CPURegister::D, CPURegister::D);
+    else if (opcode == 0x53) this->mov(CPURegister::D, CPURegister::E);
+    else if (opcode == 0x54) this->mov(CPURegister::D, CPURegister::H);
+    else if (opcode == 0x55) this->mov(CPURegister::D, CPURegister::L);
+    else if (opcode == 0x56) this->mov(CPURegister::D, CPURegister::RAM);
+    else if (opcode == 0x5f) this->mov(CPURegister::E, CPURegister::A);
+    else if (opcode == 0x58) this->mov(CPURegister::E, CPURegister::B);
+    else if (opcode == 0x59) this->mov(CPURegister::E, CPURegister::C);
+    else if (opcode == 0x5a) this->mov(CPURegister::E, CPURegister::D);
+    else if (opcode == 0x5b) this->mov(CPURegister::E, CPURegister::E);
+    else if (opcode == 0x5c) this->mov(CPURegister::E, CPURegister::H);
+    else if (opcode == 0x5d) this->mov(CPURegister::E, CPURegister::L);
+    else if (opcode == 0x5e) this->mov(CPURegister::E, CPURegister::RAM);
+    else if (opcode == 0x67) this->mov(CPURegister::H, CPURegister::A);
+    else if (opcode == 0x60) this->mov(CPURegister::H, CPURegister::B);
+    else if (opcode == 0x61) this->mov(CPURegister::H, CPURegister::C);
+    else if (opcode == 0x62) this->mov(CPURegister::H, CPURegister::D);
+    else if (opcode == 0x63) this->mov(CPURegister::H, CPURegister::E);
+    else if (opcode == 0x64) this->mov(CPURegister::H, CPURegister::H);
+    else if (opcode == 0x65) this->mov(CPURegister::H, CPURegister::L);
+    else if (opcode == 0x66) this->mov(CPURegister::H, CPURegister::RAM);
+    else if (opcode == 0x6f) this->mov(CPURegister::L, CPURegister::A);
+    else if (opcode == 0x68) this->mov(CPURegister::L, CPURegister::B);
+    else if (opcode == 0x69) this->mov(CPURegister::L, CPURegister::C);
+    else if (opcode == 0x6a) this->mov(CPURegister::L, CPURegister::D);
+    else if (opcode == 0x6b) this->mov(CPURegister::L, CPURegister::E);
+    else if (opcode == 0x6c) this->mov(CPURegister::L, CPURegister::H);
+    else if (opcode == 0x6d) this->mov(CPURegister::L, CPURegister::L);
+    else if (opcode == 0x6e) this->mov(CPURegister::L, CPURegister::RAM);
+    else if (opcode == 0x77) this->mov(CPURegister::RAM, CPURegister::A);
+    else if (opcode == 0x70) this->mov(CPURegister::RAM, CPURegister::B);
+    else if (opcode == 0x71) this->mov(CPURegister::RAM, CPURegister::C);
+    else if (opcode == 0x72) this->mov(CPURegister::RAM, CPURegister::D);
+    else if (opcode == 0x73) this->mov(CPURegister::RAM, CPURegister::E);
+    else if (opcode == 0x74) this->mov(CPURegister::RAM, CPURegister::H);
+    else if (opcode == 0x75) this->mov(CPURegister::RAM, CPURegister::L);
     else if (opcode == 0x3E) this->mvi(this->next_byte(), CPURegister::A);
     else if (opcode == 0x06) this->mvi(this->next_byte(), CPURegister::B);
     else if (opcode == 0x0E) this->mvi(this->next_byte(), CPURegister::C);
-    else if (opcode == 0x10) this->mvi(this->next_byte(), CPURegister::D);
+    else if (opcode == 0x16) this->mvi(this->next_byte(), CPURegister::D);
     else if (opcode == 0x1E) this->mvi(this->next_byte(), CPURegister::E);
-    else if (opcode == 0x1A) this->mvi(this->next_byte(), CPURegister::H);
+    else if (opcode == 0x26) this->mvi(this->next_byte(), CPURegister::H);
     else if (opcode == 0x2E) this->mvi(this->next_byte(), CPURegister::L);
-    else if (opcode == 0x24) this->mvi(this->next_byte(), CPURegister::RAM);
-    else if (opcode == 0xA7) this->ana(CPURegister::A);
-    else if (opcode == 0xA0) this->ana(CPURegister::B);
-    else if (opcode == 0xA1) this->ana(CPURegister::C);
-    else if (opcode == 0xA2) this->ana(CPURegister::D);
-    else if (opcode == 0xA3) this->ana(CPURegister::E);
-    else if (opcode == 0xA4) this->ana(CPURegister::H);
-    else if (opcode == 0xA5) this->ana(CPURegister::L);
-    else if (opcode == 0xA6) this->ana(CPURegister::RAM);
+    else if (opcode == 0x36) this->mvi(this->next_byte(), CPURegister::RAM);
+    else if (opcode == 0xa7) this->ana(CPURegister::A);
+    else if (opcode == 0xa0) this->ana(CPURegister::B);
+    else if (opcode == 0xa1) this->ana(CPURegister::C);
+    else if (opcode == 0xa2) this->ana(CPURegister::D);
+    else if (opcode == 0xa3) this->ana(CPURegister::E);
+    else if (opcode == 0xa4) this->ana(CPURegister::H);
+    else if (opcode == 0xa5) this->ana(CPURegister::L);
+    else if (opcode == 0xa6) this->ana(CPURegister::RAM);
     else if (opcode == 0xE6) this->ani(this->next_byte());
-    else if (opcode == 0xAF) this->xra(CPURegister::A);
-    else if (opcode == 0xA8) this->xra(CPURegister::B);
-    else if (opcode == 0xA9) this->xra(CPURegister::C);
-    else if (opcode == 0xAA) this->xra(CPURegister::D);
-    else if (opcode == 0xAB) this->xra(CPURegister::E);
-    else if (opcode == 0xAC) this->xra(CPURegister::H);
-    else if (opcode == 0xAD) this->xra(CPURegister::L);
-    else if (opcode == 0xAE) this->xra(CPURegister::RAM);
+    else if (opcode == 0xaf) this->xra(CPURegister::A);
+    else if (opcode == 0xa8) this->xra(CPURegister::B);
+    else if (opcode == 0xa9) this->xra(CPURegister::C);
+    else if (opcode == 0xaa) this->xra(CPURegister::D);
+    else if (opcode == 0xab) this->xra(CPURegister::E);
+    else if (opcode == 0xac) this->xra(CPURegister::H);
+    else if (opcode == 0xad) this->xra(CPURegister::L);
+    else if (opcode == 0xae) this->xra(CPURegister::RAM);
     else if (opcode == 0xEE) this->xri(this->next_byte());
-    else if (opcode == 0xB7) this->ora(CPURegister::A);
-    else if (opcode == 0xB0) this->ora(CPURegister::B);
-    else if (opcode == 0xB1) this->ora(CPURegister::C);
-    else if (opcode == 0xB2) this->ora(CPURegister::D);
-    else if (opcode == 0xB3) this->ora(CPURegister::E);
-    else if (opcode == 0xB4) this->ora(CPURegister::H);
-    else if (opcode == 0xB5) this->ora(CPURegister::L);
-    else if (opcode == 0xB6) this->ora(CPURegister::RAM);
+    else if (opcode == 0xb7) this->ora(CPURegister::A);
+    else if (opcode == 0xb0) this->ora(CPURegister::B);
+    else if (opcode == 0xb1) this->ora(CPURegister::C);
+    else if (opcode == 0xb2) this->ora(CPURegister::D);
+    else if (opcode == 0xb3) this->ora(CPURegister::E);
+    else if (opcode == 0xb4) this->ora(CPURegister::H);
+    else if (opcode == 0xb5) this->ora(CPURegister::L);
+    else if (opcode == 0xb6) this->ora(CPURegister::RAM);
     else if (opcode == 0xF6) this->ori(this->next_byte());
     else if (opcode == 0x0F) this->rrc();
     else if (opcode == 0x1F) this->rar();
     else if (opcode == 0x07) this->rlc();
-    else if (opcode == 0x11) this->ral();
+    else if (opcode == 0x17) this->ral();
     else if (opcode == 0x3C) this->inr(CPURegister::A);
     else if (opcode == 0x04) this->inr(CPURegister::B);
     else if (opcode == 0x0C) this->inr(CPURegister::C);
-    else if (opcode == 0x0E) this->inr(CPURegister::D);
+    else if (opcode == 0x14) this->inr(CPURegister::D);
     else if (opcode == 0x1C) this->inr(CPURegister::E);
-    else if (opcode == 0x18) this->inr(CPURegister::H);
+    else if (opcode == 0x24) this->inr(CPURegister::H);
     else if (opcode == 0x2C) this->inr(CPURegister::L);
-    else if (opcode == 0x22) this->inr(CPURegister::RAM);
+    else if (opcode == 0x34) this->inr(CPURegister::RAM);
     else if (opcode == 0x03) this->inx(CPURegister::BC);
-    else if (opcode == 0x0D) this->inx(CPURegister::DE);
-    else if (opcode == 0x17) this->inx(CPURegister::HL);
-    else if (opcode == 0x21) this->inx(CPURegister::StackPointer);
+    else if (opcode == 0x13) this->inx(CPURegister::DE);
+    else if (opcode == 0x23) this->inx(CPURegister::HL);
+    else if (opcode == 0x33) this->inx(CPURegister::StackPointer);
     else if (opcode == 0x3D) this->dcr(CPURegister::A);
     else if (opcode == 0x05) this->dcr(CPURegister::B);
     else if (opcode == 0x0D) this->dcr(CPURegister::C);
-    else if (opcode == 0x0F) this->dcr(CPURegister::D);
+    else if (opcode == 0x15) this->dcr(CPURegister::D);
     else if (opcode == 0x1D) this->dcr(CPURegister::E);
-    else if (opcode == 0x19) this->dcr(CPURegister::H);
+    else if (opcode == 0x25) this->dcr(CPURegister::H);
     else if (opcode == 0x2D) this->dcr(CPURegister::L);
-    else if (opcode == 0x23) this->dcr(CPURegister::RAM);
+    else if (opcode == 0x35) this->dcr(CPURegister::RAM);
     else if (opcode == 0x0B) this->dcx(CPURegister::BC);
     else if (opcode == 0x1B) this->dcx(CPURegister::DE);
     else if (opcode == 0x2B) this->dcx(CPURegister::HL);
     else if (opcode == 0x3B) this->dcx(CPURegister::StackPointer);
-    else if (opcode == 0x57) this->add(CPURegister::A);
-    else if (opcode == 0x50) this->add(CPURegister::B);
-    else if (opcode == 0x51) this->add(CPURegister::C);
-    else if (opcode == 0x52) this->add(CPURegister::D);
-    else if (opcode == 0x53) this->add(CPURegister::E);
-    else if (opcode == 0x54) this->add(CPURegister::H);
-    else if (opcode == 0x55) this->add(CPURegister::L);
-    else if (opcode == 0x56) this->add(CPURegister::RAM);
+    else if (opcode == 0x87) this->add(CPURegister::A);
+    else if (opcode == 0x80) this->add(CPURegister::B);
+    else if (opcode == 0x81) this->add(CPURegister::C);
+    else if (opcode == 0x82) this->add(CPURegister::D);
+    else if (opcode == 0x83) this->add(CPURegister::E);
+    else if (opcode == 0x84) this->add(CPURegister::H);
+    else if (opcode == 0x85) this->add(CPURegister::L);
+    else if (opcode == 0x86) this->add(CPURegister::RAM);
     else if (opcode == 0xC6) this->adi(this->next_byte());
-    else if (opcode == 0x8F) this->adc(CPURegister::A);
-    else if (opcode == 0x58) this->adc(CPURegister::B);
-    else if (opcode == 0x59) this->adc(CPURegister::C);
-    else if (opcode == 0x8A) this->adc(CPURegister::D);
-    else if (opcode == 0x8B) this->adc(CPURegister::E);
-    else if (opcode == 0x8C) this->adc(CPURegister::H);
-    else if (opcode == 0x8D) this->adc(CPURegister::L);
-    else if (opcode == 0x8E) this->adc(CPURegister::RAM);
+    else if (opcode == 0x8f) this->adc(CPURegister::A);
+    else if (opcode == 0x88) this->adc(CPURegister::B);
+    else if (opcode == 0x89) this->adc(CPURegister::C);
+    else if (opcode == 0x8a) this->adc(CPURegister::D);
+    else if (opcode == 0x8b) this->adc(CPURegister::E);
+    else if (opcode == 0x8c) this->adc(CPURegister::H);
+    else if (opcode == 0x8d) this->adc(CPURegister::L);
+    else if (opcode == 0x8e) this->adc(CPURegister::RAM);
     else if (opcode == 0xCE) this->aci(this->next_byte());
-    else if (opcode == 0x61) this->sub(CPURegister::A);
-    else if (opcode == 0x5A) this->sub(CPURegister::B);
-    else if (opcode == 0x5B) this->sub(CPURegister::C);
-    else if (opcode == 0x5C) this->sub(CPURegister::D);
-    else if (opcode == 0x5D) this->sub(CPURegister::E);
-    else if (opcode == 0x5E) this->sub(CPURegister::H);
-    else if (opcode == 0x5F) this->sub(CPURegister::L);
-    else if (opcode == 0x60) this->sub(CPURegister::RAM);
+    else if (opcode == 0x97) this->sub(CPURegister::A);
+    else if (opcode == 0x90) this->sub(CPURegister::B);
+    else if (opcode == 0x91) this->sub(CPURegister::C);
+    else if (opcode == 0x92) this->sub(CPURegister::D);
+    else if (opcode == 0x93) this->sub(CPURegister::E);
+    else if (opcode == 0x94) this->sub(CPURegister::H);
+    else if (opcode == 0x95) this->sub(CPURegister::L);
+    else if (opcode == 0x96) this->sub(CPURegister::RAM);
     else if (opcode == 0xD6) this->sui(this->next_byte());
-    else if (opcode == 0x9F) this->sbb(CPURegister::A);
-    else if (opcode == 0x62) this->sbb(CPURegister::B);
-    else if (opcode == 0x63) this->sbb(CPURegister::C);
-    else if (opcode == 0x9A) this->sbb(CPURegister::D);
-    else if (opcode == 0x9B) this->sbb(CPURegister::E);
-    else if (opcode == 0x9C) this->sbb(CPURegister::H);
-    else if (opcode == 0x9D) this->sbb(CPURegister::L);
-    else if (opcode == 0x9E) this->sbb(CPURegister::RAM);
+    else if (opcode == 0x9f) this->sbb(CPURegister::A);
+    else if (opcode == 0x98) this->sbb(CPURegister::B);
+    else if (opcode == 0x99) this->sbb(CPURegister::C);
+    else if (opcode == 0x9a) this->sbb(CPURegister::D);
+    else if (opcode == 0x9b) this->sbb(CPURegister::E);
+    else if (opcode == 0x9c) this->sbb(CPURegister::H);
+    else if (opcode == 0x9d) this->sbb(CPURegister::L);
+    else if (opcode == 0x9e) this->sbb(CPURegister::RAM);
     else if (opcode == 0xDE) this->sbi(this->next_byte());
-    else if (opcode == 0xBF) this->cmp(CPURegister::A);
-    else if (opcode == 0xB8) this->cmp(CPURegister::B);
-    else if (opcode == 0xB9) this->cmp(CPURegister::C);
-    else if (opcode == 0xBA) this->cmp(CPURegister::D);
-    else if (opcode == 0xBB) this->cmp(CPURegister::E);
-    else if (opcode == 0xBC) this->cmp(CPURegister::H);
-    else if (opcode == 0xBD) this->cmp(CPURegister::L);
-    else if (opcode == 0xBE) this->cmp(CPURegister::RAM);
+    else if (opcode == 0xbf) this->cmp(CPURegister::A);
+    else if (opcode == 0xb8) this->cmp(CPURegister::B);
+    else if (opcode == 0xb9) this->cmp(CPURegister::C);
+    else if (opcode == 0xba) this->cmp(CPURegister::D);
+    else if (opcode == 0xbb) this->cmp(CPURegister::E);
+    else if (opcode == 0xbc) this->cmp(CPURegister::H);
+    else if (opcode == 0xbd) this->cmp(CPURegister::L);
+    else if (opcode == 0xbe) this->cmp(CPURegister::RAM);
     else if (opcode == 0xFE) this->cpi(this->next_byte());
     else if (opcode == 0xC5) this->push(CPURegister::BC);
     else if (opcode == 0xD5) this->push(CPURegister::DE);
@@ -254,20 +257,20 @@ void CPU::cpu_tick()
     else if (opcode == 0x0A) this->ldax(CPURegister::BC);
     else if (opcode == 0x1A) this->ldax(CPURegister::DE);
     else if (opcode == 0x01) this->lxi(CPURegister::BC, this->next_address());
-    else if (opcode == 0x0B) this->lxi(CPURegister::DE, this->next_address());
-    else if (opcode == 0x15) this->lxi(CPURegister::HL, this->next_address());
-    else if (opcode == 0x1F) this->lxi(CPURegister::StackPointer, this->next_address());
+    else if (opcode == 0x11) this->lxi(CPURegister::DE, this->next_address());
+    else if (opcode == 0x21) this->lxi(CPURegister::HL, this->next_address());
+    else if (opcode == 0x31) this->lxi(CPURegister::StackPointer, this->next_address());
     else if (opcode == 0x2A) this->lhld(this->next_address());
-    else if (opcode == 0x20) this->sta(this->next_address());
+    else if (opcode == 0x32) this->sta(this->next_address());
     else if (opcode == 0x02) this->stax(CPURegister::BC);
-    else if (opcode == 0x0C) this->stax(CPURegister::DE);
-    else if (opcode == 0x16) this->shld(this->next_address());
+    else if (opcode == 0x12) this->stax(CPURegister::DE);
+    else if (opcode == 0x22) this->shld(this->next_address());
     else if (opcode == 0x09) this->dad(CPURegister::BC);
-    else if (opcode == 0x13) this->dad(CPURegister::DE);
-    else if (opcode == 0x1D) this->dad(CPURegister::HL);
-    else if (opcode == 0x27) this->dad(CPURegister::StackPointer);
+    else if (opcode == 0x19) this->dad(CPURegister::DE);
+    else if (opcode == 0x29) this->dad(CPURegister::HL);
+    else if (opcode == 0x39) this->dad(CPURegister::StackPointer);
     else if (opcode == 0x2F) this->cma();
-    else if (opcode == 0x25) this->stc();
+    else if (opcode == 0x37) this->stc();
     else if (opcode == 0x3F) this->cmc();
     else if (opcode == 0xE9) this->pchl();
     else if (opcode == 0xF9) this->sphl();
@@ -275,10 +278,10 @@ void CPU::cpu_tick()
     else if (opcode == 0xE3) this->xthl();
     else if (opcode == 0xF3) this->di();
     else if (opcode == 0xFB) this->ei();
-    else if (opcode == 0x1B) this->daa();
+    else if (opcode == 0x27) this->daa();
     else if (opcode == 0xD3) this->out(this->next_byte());
     else if (opcode == 0xDB) this->in(this->next_byte());
-    else if (opcode) cout << "Opcode not implemented " << hex << opcode << "!\n";
+    else if (opcode) cout << "Opcode not implemented " << hex << static_cast<int>(opcode) << "!\n";
 }
 
 u16 CPU::read_register(const CPURegister cpu_register)
@@ -292,16 +295,16 @@ u16 CPU::read_register(const CPURegister cpu_register)
         case CPURegister::E: return this->E;
         case CPURegister::H: return this->H;
         case CPURegister::L: return this->L;
-        case CPURegister::PSW: return this->A << 8 | this->flags.as_byte;
-        case CPURegister::BC: return this->B << 8 | this->C;
-        case CPURegister::DE: return this->D << 8 | this->E;
-        case CPURegister::HL: return this->H << 8 | this->L;
-        case CPURegister::StackPointer: return this->stack.get_pointer();
+        case CPURegister::PSW: return static_cast<u16>(this->A) << 8 | this->flags.as_byte;
+        case CPURegister::BC: return static_cast<u16>(this->B) << 8 | this->C;
+        case CPURegister::DE: return static_cast<u16>(this->D) << 8 | this->E;
+        case CPURegister::HL: return static_cast<u16>(this->H) << 8 | this->L;
+        case CPURegister::StackPointer: return this->stack.pointer;
         case CPURegister::ProgramCounter: return this->program_counter;
         case CPURegister::RAM:
         {
-            const u16 address = this->H << 8 | this->L;
-            return this->ram[address % RAM_SIZE];
+            const u16 address = static_cast<u16>(this->H) << 8 | this->L;
+            return (*this->ram)[address % RAM_SIZE];
         }
     }
 }
@@ -321,12 +324,15 @@ void CPU::write_register(const CPURegister cpu_register, const u16 value)
         case CPURegister::BC: this->B = value >> 8; this->C = value & 0xFF; break;
         case CPURegister::DE: this->D = value >> 8; this->E = value & 0xFF; break;
         case CPURegister::HL: this->H = value >> 8; this->L = value & 0xFF; break;
-        case CPURegister::StackPointer: this->stack.set_pointer(value); break;
+        case CPURegister::StackPointer: this->stack.pointer = value; break;
         case CPURegister::ProgramCounter: this->program_counter = value; break;
         case CPURegister::RAM:
         {
-            const u16 address = this->H << 8 | this->L;
-            this->ram[address % RAM_SIZE] = value;
+            const u16 address = static_cast<u16>(this->H) << 8 | this->L;
+            //todo uncomment this
+            if (address % RAM_SIZE >= DISPLAY_START_ADDRESS && address % RAM_SIZE <= DISPLAY_END_ADDRESS)
+                cout << "Writing " << uppercase << hex << value << " to " << address;
+            (*this->ram)[address % RAM_SIZE] = value;
             break;
         }
     }
@@ -549,13 +555,13 @@ void CPU::push(const CPURegister from)
 {
     //push the stack
     const u16 value = this->read_register(from);
-    this->stack.push_address(value);
+    this->stack.push_address(this, value);
 }
 
 void CPU::pop(const CPURegister to)
 {
     //pop the stack
-    const u16 value = this->stack.pop_address();
+    const u16 value = this->stack.pop_address(this);
     this->write_register(to, value);
 }
 
@@ -568,14 +574,14 @@ void CPU::jmp(const u16 address)
 void CPU::call(const u16 address)
 {
     //jump to subroutine
-    this->stack.push_address(this->program_counter);
+    this->stack.push_address(this, this->program_counter);
     this->program_counter = address;
 }
 
 void CPU::ret()
 {
     //return from subroutine
-    this->program_counter = this->stack.pop_address();
+    this->program_counter = this->stack.pop_address(this);
 }
 
 void CPU::rst(const u16 address)
@@ -755,7 +761,7 @@ void CPU::rp()
 void CPU::lda(const u16 address)
 {
     //load accumulator with value from RAM at address
-    this->A = this->ram[address % RAM_SIZE];
+    this->A = (*this->ram)[address % RAM_SIZE];
 }
 
 void CPU::ldax(const CPURegister from)
@@ -767,21 +773,24 @@ void CPU::ldax(const CPURegister from)
 void CPU::lxi(const CPURegister to, const u16 address)
 {
     //load register with value from RAM at address
-    const u16 value = this->ram[address % RAM_SIZE];
+    const u16 value = (*this->ram)[address % RAM_SIZE];
     this->write_register(to, value);
 }
 
 void CPU::lhld(const u16 address)
 {
     //load L,H registers with values from RAM at address
-    this->L = this->ram[address % RAM_SIZE];
-    this->H = this->ram[(address + 1) % RAM_SIZE];
+    this->L = (*this->ram)[address % RAM_SIZE];
+    this->H = (*this->ram)[(address + 1) % RAM_SIZE];
 }
 
 void CPU::sta(const u16 address) const
 {
     //store accumulator into RAM at address
-    this->ram[address % RAM_SIZE] = this->A;
+    //todo uncomment this
+    if (address % RAM_SIZE >= DISPLAY_START_ADDRESS && address % RAM_SIZE <= DISPLAY_END_ADDRESS)
+        cout << "Writing " << uppercase << hex << this->A << " to " << address;
+    (*this->ram)[address % RAM_SIZE] = this->A;
 }
 
 void CPU::stax(const CPURegister to)
@@ -793,8 +802,14 @@ void CPU::stax(const CPURegister to)
 void CPU::shld(const u16 address) const
 {
     //store L,H registers into RAM at address
-    this->ram[address % RAM_SIZE] = this->L;
-    this->ram[(address + 1) % RAM_SIZE] = this->H;
+    //todo uncomment this
+    if (address % RAM_SIZE >= DISPLAY_START_ADDRESS && address % RAM_SIZE <= DISPLAY_END_ADDRESS)
+        cout << "Writing " << uppercase << hex << this->L << " to " << address;
+    (*this->ram)[address % RAM_SIZE] = this->L;
+    //todo uncomment this
+    if ((address+1) % RAM_SIZE >= DISPLAY_START_ADDRESS && (address+1) % RAM_SIZE <= DISPLAY_END_ADDRESS)
+        cout << "Writing " << uppercase << hex << this->H << " to " << (address+1);
+    (*this->ram)[(address + 1) % RAM_SIZE] = this->H;
 }
 
 void CPU::dad(const CPURegister target)
@@ -852,11 +867,17 @@ void CPU::xchg()
 void CPU::xthl()
 {
     //exchange HL with value at RAM address stack pointer
-    const u16 stack_pointer = this->stack.get_pointer();
-    const u8 stack_first_value = this->ram[stack_pointer % RAM_SIZE];
-    const u8 stack_second_value = this->ram[(stack_pointer + 1) % RAM_SIZE];
-    this->ram[stack_pointer % RAM_SIZE] = this->L;
-    this->ram[(stack_pointer + 1) % RAM_SIZE] = this->H;
+    const u16 stack_pointer = this->stack.pointer;
+    const u8 stack_first_value = (*this->ram)[stack_pointer % RAM_SIZE];
+    const u8 stack_second_value = (*this->ram)[(stack_pointer + 1) % RAM_SIZE];
+    //todo uncomment this
+    if (stack_pointer % RAM_SIZE >= DISPLAY_START_ADDRESS && stack_pointer % RAM_SIZE <= DISPLAY_END_ADDRESS)
+        cout << "Writing " << uppercase << hex << this->L << " to " << stack_pointer;
+    (*this->ram)[stack_pointer % RAM_SIZE] = this->L;
+    //todo uncomment this
+    if ((stack_pointer+1) % RAM_SIZE >= DISPLAY_START_ADDRESS && (stack_pointer+1) % RAM_SIZE <= DISPLAY_END_ADDRESS)
+        cout << "Writing " << uppercase << hex << this->L << " to " << (stack_pointer+1);
+    (*this->ram)[(stack_pointer + 1) % RAM_SIZE] = this->H;
     this->L = stack_first_value;
     this->H = stack_second_value;
 }
@@ -920,7 +941,21 @@ void CPU::out(const u8 command)
     }
 }
 
-void CPU::run()
+void CPU::interrupt(const u16 number)
 {
-    this->cpu_tick();
+    if (this->are_interrupts_enabled)
+    {
+        this->are_interrupts_enabled = false;
+        this->stack.push_address(this, this->program_counter);
+
+        //todo remove this
+        // const u16 interrupt_vector = number << 3;
+        // const u8 low = (*this->ram)[interrupt_vector % RAM_SIZE];
+        // const u8 high = (*this->ram)[(interrupt_vector + 1) % RAM_SIZE];
+        // const u16 interrupt_handler_address = static_cast<u16>(high) << 8 | low;
+        // this->program_counter = interrupt_handler_address;
+
+        const u16 interrupt_vector = number << 3;
+        this->program_counter = interrupt_vector;
+    }
 }
