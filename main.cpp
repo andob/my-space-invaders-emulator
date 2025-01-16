@@ -34,7 +34,7 @@ int main(const int argc, char** argv)
         istreambuf_iterator<char>(),
         back_inserter(rom_file_bytes));
 
-    unique_ptr<Emulator> emulator = make_unique<Emulator>(rom_file_bytes);
+    const auto emulator = make_unique<Emulator>(rom_file_bytes);
     emulator->run();
 
     return EXIT_SUCCESS;

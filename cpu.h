@@ -19,7 +19,6 @@ class CPU
     CPUFlags flags;
     u16 shift_register;
     u8 shift_register_offset;
-    //todo implement interrupts
     bool are_interrupts_enabled;
 
     u8 next_byte();
@@ -112,7 +111,7 @@ public:
 
     explicit CPU();
 
-    void tick();
+    u8 tick();
 
     void interrupt(u16 number);
 };

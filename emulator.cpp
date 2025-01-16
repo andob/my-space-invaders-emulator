@@ -39,15 +39,13 @@ void Emulator::run() const
 
     while (true)
     {
-        //todo run cpu cycles
-        for (int i = 0; i <= 1000; i++)
-            this->cpu->tick();
+        for (int i = 0; i <= 16600; i += this->cpu->tick()) {}
+        this->cpu->interrupt(1);
+
+        for (int i = 0; i <= 16600; i += this->cpu->tick()) {}
+        this->cpu->interrupt(2);
 
         this->render_frame(renderer);
-
-        //todo interrupt cpu
-        // this->cpu->interrupt(1);
-        // this->cpu->interrupt(2);
 
         const EventHandlerResult result = this->handle_events();
         if (result.should_exit_frontend)
@@ -68,14 +66,10 @@ void Emulator::render_frame(SDL_Renderer* renderer) const
     error = SDL_RenderClear(renderer);
     HandleSDLError(error, SDL_RenderClear);
 
-    error = SDL_SetRenderDrawColor(renderer, 0xFF, 0xFF, 0xFF, 0xFF);
-    HandleSDLError(error, SDL_SetRenderDrawColor);
-
-    //todo how is display rendered?
     u16 display_address = DISPLAY_START_ADDRESS;
-    for (u16 ix = 0; ix < DISPLAY_WIDTH / 8; ix++)
+    for (u16 ix = 0; ix < DISPLAY_WIDTH; ix++)
     {
-        for (u16 iy = 0; iy < DISPLAY_HEIGHT; iy++)
+        for (u16 iy = 0; iy < DISPLAY_HEIGHT; iy += 8)
         {
             u8 byte = (*this->cpu->ram)[(display_address++) % RAM_SIZE];
             for (u8 bit_index = 0; bit_index < 8; bit_index++)
@@ -84,9 +78,17 @@ void Emulator::render_frame(SDL_Renderer* renderer) const
                 byte >>= 1;
                 if (!bit) continue;
 
+                u8 r = 0x00, g = 0x00, b = 0x00;
+                if (iy > 200 && iy < 220) r = 0xFF;
+                else if (iy < 80) g = 0xFF;
+                else r = g = b = 0xFF;
+
+                error = SDL_SetRenderDrawColor(renderer, r, g, b, 0xFF);
+                HandleSDLError(error, SDL_SetRenderDrawColor);
+
                 SDL_Rect rectangle;
                 rectangle.x = ix * BLOCK_WIDTH;
-                rectangle.y = (iy + bit_index) * BLOCK_HEIGHT;
+                rectangle.y = (DISPLAY_HEIGHT - iy - bit_index) * BLOCK_HEIGHT;
                 rectangle.w = BLOCK_WIDTH;
                 rectangle.h = BLOCK_HEIGHT;
                 error = SDL_RenderFillRect(renderer, &rectangle);
@@ -112,3 +114,5 @@ Emulator::EventHandlerResult Emulator::handle_events() const
 
     return EventHandlerResult { .should_exit_frontend = false };
 }
+
+#undef HandleSDLError
