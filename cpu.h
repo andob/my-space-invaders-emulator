@@ -6,7 +6,8 @@
 #include "cpu/registers.h"
 #include "cpu/stack.h"
 #include <array>
-#include <vector>
+
+#define address_from_high_low(high, low) (((u16)high) << 8) | (((u16)low) & 0xFF)
 
 using namespace std;
 
@@ -87,7 +88,7 @@ class CPU
     void rp();
     void lda(u16 address);
     void ldax(CPURegister from);
-    void lxi(CPURegister to, u16 address);
+    void lxi(CPURegister to, u16 value);
     void lhld(u16 address);
     void sta(u16 address) const;
     void stax(CPURegister to);

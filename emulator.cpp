@@ -2,6 +2,7 @@
 #include "constants.h"
 #include <SDL.h>
 #include <iostream>
+#include <vector>
 
 Emulator::Emulator(vector<u8>& rom_file_bytes)
 {
@@ -77,18 +78,11 @@ void Emulator::render_frame(SDL_Renderer* renderer) const
         for (u16 iy = 0; iy < DISPLAY_HEIGHT; iy++)
         {
             u8 byte = (*this->cpu->ram)[(display_address++) % RAM_SIZE];
-            // cout << uppercase << hex << static_cast<int>(display_address) << ' ' << static_cast<int>(byte) << endl;
-            if (!byte) continue;
-            else
-            {
-                cout << "HERE!";
-            }
             for (u8 bit_index = 0; bit_index < 8; bit_index++)
             {
                 const u8 bit = byte & 1;
                 byte >>= 1;
                 if (!bit) continue;
-                cout << "HERE!";
 
                 SDL_Rect rectangle;
                 rectangle.x = ix * BLOCK_WIDTH;

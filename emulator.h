@@ -3,6 +3,8 @@
 
 #include <memory>
 #include <SDL_render.h>
+#include <vector>
+
 #include "cpu.h"
 
 using namespace std;
