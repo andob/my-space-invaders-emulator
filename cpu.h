@@ -108,6 +108,7 @@ class CPU
 
 public:
     unique_ptr<array<u8, RAM_SIZE>> ram;
+    u8 in1, in2;
 
     explicit CPU();
 

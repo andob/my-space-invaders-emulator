@@ -6,11 +6,16 @@ CPU::CPU()
     this->A = this->B = this->C = this->D = this->E = 0;
     this->H = this->L = this->program_counter = 0;
     this->flags.as_byte = 0;
+
+    this->in1 = 8;
+    this->in2 = 0;
     this->shift_register = 0;
     this->shift_register_offset = 0;
-    this->are_interrupts_enabled = true;
+
     this->ram = make_unique<array<u8, RAM_SIZE>>();
     this->ram->fill(0);
+
+    this->are_interrupts_enabled = true;
 }
 
 u8 CPU::next_byte()
@@ -898,11 +903,11 @@ void CPU::in(const u8 command)
 {
     if (command == 1)
     {
-        //todo implement in1: Player 1 keyboard
+        this->A = this->in1;
     }
     else if (command == 2)
     {
-        //todo implement in2: Player 2 keyboard
+        this->A = this->in2;
     }
     else if (command == 3)
     {

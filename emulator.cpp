@@ -1,4 +1,7 @@
 #include "emulator.h"
+
+#include <bitset>
+
 #include "constants.h"
 #include <SDL.h>
 #include <iostream>
@@ -106,9 +109,32 @@ Emulator::EventHandlerResult Emulator::handle_events() const
     SDL_Event event;
     while (SDL_PollEvent(&event))
     {
-        if ((event.type == SDL_QUIT) || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE))
+        if (event.type == SDL_QUIT || (event.type == SDL_KEYDOWN && event.key.keysym.sym == SDLK_ESCAPE))
         {
             return EventHandlerResult { .should_exit_frontend = true };
+        }
+
+        if (event.type == SDL_KEYDOWN || event.type == SDL_KEYUP)
+        {
+            u8 player = 1, key = 0;
+            switch (event.key.keysym.sym)
+            {
+                case SDLK_c: key = 0; break; //insert coin
+                case SDLK_1: case SDLK_KP_1: key = 2; break; //1 player
+                case SDLK_2: case SDLK_KP_2: key = 1; break; //2 players
+                case SDLK_SPACE: player = 1; key = 4; break; //player 1 shoot
+                case SDLK_LEFT: player = 1; key = 5; break; //player 1 left
+                case SDLK_RIGHT: player = 1; key = 6; break; //player 1 right
+                case SDLK_s: player = 2; key = 4; break; //player 2 shoot
+                case SDLK_a: player = 2; key = 5; break; //player 2 left
+                case SDLK_d: player = 2; key = 6; break; //player 2 right
+                default: continue;
+            }
+
+            if (player == 1 && event.type == SDL_KEYDOWN) this->cpu->in1 |= 1 << key;
+            else if (player == 1 && event.type == SDL_KEYUP) this->cpu->in1 &= ~(1 << key);
+            else if (player == 2 && event.type == SDL_KEYDOWN) this->cpu->in2 |= 1 << key;
+            else if (player == 2 && event.type == SDL_KEYUP) this->cpu->in2 &= ~(1 << key);
         }
     }
 
