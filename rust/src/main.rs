@@ -4,5 +4,5 @@ mod system;
 
 fn main()
 {
-    System::new();
+    let system = System::new();
 }

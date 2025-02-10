@@ -1,11 +1,9 @@
 #include "emulator.h"
 
-#include <bitset>
-
-#include "constants.h"
 #include <SDL.h>
 #include <iostream>
 #include <vector>
+#include "constants.h"
 
 Emulator::Emulator(vector<u8>& rom_file_bytes)
 {

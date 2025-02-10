@@ -1,6 +1,5 @@
 use crate::system::cpu::flags::CPUFlags;
 use crate::system::address_from_high_low;
-use crate::system::cpu::opcodes::build_opcodes_slice;
 use crate::system::cpu::ram::{RAM, RAM_SIZE};
 use crate::system::cpu::stack::CPUStack;
 
@@ -35,12 +34,6 @@ impl CPU
 {
     pub fn new() -> CPU
     {
-        //todo remove this
-        for opcode in build_opcodes_slice()
-        {
-            println!("{:02X} {}", opcode.key, opcode.name);
-        }
-
         return CPU
         {
             A:0, B:0, C:0, D:0, E:0, H:0, L:0,

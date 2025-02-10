@@ -58,7 +58,6 @@ impl PartialEq<CPUFlags> for CPUFlags
     {
         return self.negative == other.negative &&
             self.zero == other.zero &&
-            self.aux_carry == other.aux_carry &&
             self.even == other.even &&
             self.carry == other.carry;
     }
@@ -68,7 +67,7 @@ impl Display for CPUFlags
 {
     fn fmt(&self, f : &mut Formatter<'_>) -> std::fmt::Result
     {
-        return write!(f, "negative:{} zero:{} aux_carry:{} even:{} carry:{}\n",
-            self.negative, self.zero, self.aux_carry, self.even, self.carry);
+        return write!(f, "negative:{} zero:{} even:{} carry:{}",
+            self.negative, self.zero, self.even, self.carry);
     }
 }

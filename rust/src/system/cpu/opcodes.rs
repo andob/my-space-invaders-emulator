@@ -471,7 +471,7 @@ fn inr(target : CPURegister) -> Box<OpcodeFn>
     {
         //increment register value
         let old_value = cpu.read_register(target);
-        let new_value = old_value + 1;
+        let new_value = old_value.wrapping_add(1);
         cpu.write_register(target, new_value);
         update_arithmetic_flags(cpu, new_value);
         cpu.flags.aux_carry = old_value == 0xFF;
@@ -485,7 +485,7 @@ fn inx(target : CPURegister) -> Box<OpcodeFn>
     {
         //increment register value
         let old_value = cpu.read_register(target);
-        let new_value = old_value + 1;
+        let new_value = old_value.wrapping_add(1);
         cpu.write_register(target, new_value);
         update_arithmetic_flags(cpu, new_value);
         cpu.flags.aux_carry = old_value == 0xFFFF;
@@ -499,7 +499,7 @@ fn dcr(target : CPURegister) -> Box<OpcodeFn>
     {
         //decrement register value
         let old_value = cpu.read_register(target);
-        let new_value = old_value - 1;
+        let new_value = old_value.wrapping_sub(1);
         cpu.write_register(target, new_value);
         update_arithmetic_flags(cpu, new_value);
         cpu.flags.aux_carry = old_value == 0;
@@ -513,7 +513,7 @@ fn dcx(target : CPURegister) -> Box<OpcodeFn>
     {
         //decrement register value
         let old_value = cpu.read_register(target);
-        let new_value = old_value - 1;
+        let new_value = old_value.wrapping_sub(1);
         cpu.write_register(target, new_value);
         update_arithmetic_flags(cpu, new_value);
         cpu.flags.aux_carry = old_value == 0;
@@ -536,7 +536,7 @@ fn adi() -> Box<OpcodeFnWithArg>
     return Box::new(move |cpu, value|
     {
         //add value to accumulator
-        let new_value = (cpu.A as u16) + value;
+        let new_value = (cpu.A as u16).wrapping_add(value);
         cpu.A = new_value as u8;
         update_arithmetic_flags(cpu, new_value);
     })
@@ -557,7 +557,7 @@ fn aci() -> Box<OpcodeFnWithArg>
     return Box::new(move |cpu, value|
     {
         //add with carry value to accumulator
-        let new_value = (cpu.A as u16) + value + (cpu.flags.carry as u16);
+        let new_value = (cpu.A as u16).wrapping_add(value).wrapping_add(cpu.flags.carry as u16);
         cpu.A = new_value as u8;
         update_arithmetic_flags(cpu, new_value);
     })
@@ -578,7 +578,7 @@ fn sui() -> Box<OpcodeFnWithArg>
     return Box::new(move |cpu, value|
     {
         //subtract value from accumulator
-        let new_value = (cpu.A as u16) - value;
+        let new_value = (cpu.A as u16).wrapping_sub(value);
         cpu.A = new_value as u8;
         update_arithmetic_flags(cpu, new_value);
         cpu.flags.aux_carry = new_value < 0 || new_value > 0xFF;
@@ -601,7 +601,7 @@ fn sbi() -> Box<OpcodeFnWithArg>
     return Box::new(move |cpu, value|
     {
         //subtract value with carry from accumulator
-        let new_value = (cpu.A as u16) - value - (cpu.flags.carry as u16);
+        let new_value = (cpu.A as u16).wrapping_sub(value).wrapping_sub(cpu.flags.carry as u16);
         cpu.A = new_value as u8;
         update_arithmetic_flags(cpu, new_value);
         cpu.flags.aux_carry = new_value < 0 || new_value > 0xFF;
@@ -624,7 +624,7 @@ fn cpi() -> Box<OpcodeFnWithArg>
     return Box::new(move |cpu, value|
     {
         //compare value with accumulator
-        let new_value = (cpu.A as u16) - value;
+        let new_value = (cpu.A as u16).wrapping_sub(value);
         update_arithmetic_flags(cpu, new_value);
         cpu.flags.aux_carry = new_value < 0 || new_value > 0xFF;
         cpu.flags.carry = cpu.flags.aux_carry;
@@ -755,7 +755,7 @@ fn lhld() -> Box<OpcodeFnWithArg>
     {
         //load L,H registers with values from RAM at address
         cpu.L = cpu.ram[address];
-        cpu.H = cpu.ram[address+1]
+        cpu.H = cpu.ram[address.wrapping_add(1)]
     })
 }
 
@@ -783,7 +783,7 @@ fn shld() -> Box<OpcodeFnWithArg>
     {
         //store L,H registers into RAM at address
         cpu.ram[address] = cpu.L;
-        cpu.ram[address+1] = cpu.H;
+        cpu.ram[address.wrapping_add(1)] = cpu.H;
     })
 }
 
@@ -794,7 +794,7 @@ fn dad(target : CPURegister) -> Box<OpcodeFn>
         //add target to HL
         let old_target_value = cpu.read_register(target) as u32;
         let old_hl_value = cpu.read_register(CPURegister::HL) as u32;
-        let new_hl_value = old_hl_value + old_target_value;
+        let new_hl_value = old_hl_value.wrapping_add(old_target_value);
         cpu.write_register(CPURegister::HL, new_hl_value as u16);
         update_arithmetic_flags(cpu, new_hl_value as u16);
         cpu.flags.aux_carry = new_hl_value > 0xFFFF;
@@ -868,9 +868,9 @@ fn xthl() -> Box<OpcodeFn>
         //exchange HL with value at RAM address stack pointer
         let stack_pointer = cpu.stack.get_pointer();
         let stack_first_value = cpu.ram[stack_pointer];
-        let stack_second_value = cpu.ram[stack_pointer+1];
+        let stack_second_value = cpu.ram[stack_pointer.wrapping_add(1)];
         cpu.ram[stack_pointer] = cpu.L;
-        cpu.ram[stack_pointer+1] = cpu.H;
+        cpu.ram[stack_pointer.wrapping_add(1)] = cpu.H;
         cpu.L = stack_first_value;
         cpu.H = stack_second_value;
     })
@@ -902,13 +902,17 @@ fn daa() -> Box<OpcodeFn>
         let mut msb = (cpu.A & 0xF0) >> 4;
         if lsb > 9 || cpu.flags.aux_carry
         {
-            cpu.A += 6;
-            cpu.flags.aux_carry = (lsb + 6) > 0x0F;
+            cpu.A = cpu.A.wrapping_add(6);
+            cpu.flags.aux_carry = lsb.wrapping_add(6) > 0x0F;
         }
 
-        if msb > 9 || cpu.flags.carry { msb += 6; }
+        if msb > 9 || cpu.flags.carry
+        {
+            msb = msb.wrapping_add(6);
+        }
+        
         cpu.A = (msb << 4) | (cpu.A & 0x0F);
-        cpu.flags.aux_carry = (msb + 6) > 0x0F;
+        cpu.flags.aux_carry = msb.wrapping_add(6) > 0x0F;
         update_arithmetic_flags(cpu, cpu.A as u16);
     })
 }
@@ -921,7 +925,7 @@ fn _in() -> Box<OpcodeFnWithArg>
         else if command == 2 { cpu.A = cpu.in2; }
         else if command == 3
         {
-            let shift_amount = 8 - cpu.shift_register_offset;
+            let shift_amount = 8u8.wrapping_sub(cpu.shift_register_offset);
             cpu.A = (cpu.shift_register >> shift_amount) as u8;
         }
     })
