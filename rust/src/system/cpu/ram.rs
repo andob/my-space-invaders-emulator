@@ -9,9 +9,16 @@ pub struct RAM
 
 impl RAM
 {
-    pub fn new() -> RAM
+    pub fn new(rom_bytes : &[u8]) -> RAM
     {
-        return RAM { data: Box::new([0; RAM_SIZE]) };
+        let mut ram_bytes = Box::new([0; RAM_SIZE]);
+
+        for (rom_byte_index, rom_byte) in rom_bytes.iter().enumerate()
+        {
+            ram_bytes[rom_byte_index] = *rom_byte;
+        }
+
+        return RAM { data: ram_bytes };
     }
 }
 

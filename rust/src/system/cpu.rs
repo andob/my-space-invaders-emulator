@@ -1,13 +1,19 @@
-use crate::system::cpu::flags::CPUFlags;
+use anyhow::{Context, Result};
+use web_sys::window;
+use crate::codeloc;
 use crate::system::address_from_high_low;
+use crate::system::cpu::flags::CPUFlags;
+use crate::system::cpu::interrupts::CPUInterrupts;
+use crate::system::cpu::opcodes::build_opcodes_slice;
 use crate::system::cpu::ram::{RAM, RAM_SIZE};
 use crate::system::cpu::stack::CPUStack;
 
 mod flags;
 mod registers;
 mod opcodes;
-mod ram;
+pub mod ram;
 mod stack;
+mod interrupts;
 
 #[allow(non_snake_case)]
 pub struct CPU
@@ -22,17 +28,17 @@ pub struct CPU
     program_counter : u16,
     stack : CPUStack,
     flags : CPUFlags,
-    in1 : u8,
-    in2 : u8,
+    pub in1 : u8,
+    pub in2 : u8,
     shift_register : u16,
     shift_register_offset : u8,
     are_interrupts_enabled : bool,
-    ram : RAM,
+    pub ram : RAM,
 }
 
 impl CPU
 {
-    pub fn new() -> CPU
+    pub fn new(rom_bytes : &[u8]) -> CPU
     {
         return CPU
         {
@@ -44,7 +50,7 @@ impl CPU
             shift_register: 0,
             shift_register_offset: 0,
             are_interrupts_enabled: true,
-            ram: RAM::new(),
+            ram: RAM::new(rom_bytes),
         }
     }
 
@@ -66,4 +72,34 @@ impl CPU
         let high = self.next_byte();
         return address_from_high_low(high, low);
     }
+
+    #[inline(always)]
+    pub fn run<F>(&mut self, mut callback : F) -> Result<()> where F : FnMut(&mut CPU) -> Result<()>
+    {
+        let opcodes = build_opcodes_slice();
+
+        // loop
+        // {
+            for interrupt_number in [1u16, 2u16]
+            {
+                let mut cycle_count = 0u16;
+                while cycle_count <= 16600
+                {
+                    let opcode = &opcodes[self.next_byte() as usize];
+                    // println!("{}", opcode.name);
+                    (opcode.lambda)(self);
+
+                    cycle_count += opcode.duration;
+                }
+
+                CPUInterrupts::interrupt(self, interrupt_number);
+
+                let result = callback(self);
+                if result.is_err() { return result }
+            }
+        // }
+
+        return Ok(());
+    }
+
 }

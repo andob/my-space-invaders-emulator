@@ -11,7 +11,7 @@ pub struct Opcode
     pub key : u8,
     pub name : String,
     pub lambda : Box<OpcodeFn>,
-    pub duration : u8,
+    pub duration : u16,
 }
 
 macro_rules! opcode
@@ -581,7 +581,7 @@ fn sui() -> Box<OpcodeFnWithArg>
         let new_value = (cpu.A as u16).wrapping_sub(value);
         cpu.A = new_value as u8;
         update_arithmetic_flags(cpu, new_value);
-        cpu.flags.aux_carry = new_value < 0 || new_value > 0xFF;
+        cpu.flags.aux_carry = new_value > 0xFF;
         cpu.flags.carry = cpu.flags.aux_carry;
     })
 }
@@ -604,7 +604,7 @@ fn sbi() -> Box<OpcodeFnWithArg>
         let new_value = (cpu.A as u16).wrapping_sub(value).wrapping_sub(cpu.flags.carry as u16);
         cpu.A = new_value as u8;
         update_arithmetic_flags(cpu, new_value);
-        cpu.flags.aux_carry = new_value < 0 || new_value > 0xFF;
+        cpu.flags.aux_carry = new_value > 0xFF;
         cpu.flags.carry = cpu.flags.aux_carry;
     })
 }
@@ -626,7 +626,7 @@ fn cpi() -> Box<OpcodeFnWithArg>
         //compare value with accumulator
         let new_value = (cpu.A as u16).wrapping_sub(value);
         update_arithmetic_flags(cpu, new_value);
-        cpu.flags.aux_carry = new_value < 0 || new_value > 0xFF;
+        cpu.flags.aux_carry = new_value > 0xFF;
         cpu.flags.carry = cpu.flags.aux_carry;
     })
 }

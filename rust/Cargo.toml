@@ -3,4 +3,23 @@ name = "rust"
 version = "0.1.0"
 edition = "2021"
 
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
 [dependencies]
+# generic Result<> with any error
+anyhow = "1.0.95"
+
+# Simple DirectMedia Layer bindings
+#sdl2 = "0.37.0"
+
+# WASM support libs
+wasm-bindgen = "0.2.84"
+console_error_panic_hook = { version = "0.1.7", optional = true }
+
+# Web API
+web-sys = { version = "0.3.77", features = ["Window", "Document", "Element", "HtmlCanvasElement", "CanvasRenderingContext2d"] }
+log = "0.4.25"
