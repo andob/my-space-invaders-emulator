@@ -1,4 +1,4 @@
-use crate::system::address_from_high_low;
+use crate::address_from_high_low;
 use crate::system::cpu::CPU;
 
 pub struct CPUStack

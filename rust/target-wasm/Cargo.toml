@@ -1,0 +1,36 @@
+[package]
+name = "target-wasm"
+version = "0.1.0"
+edition = "2018"
+
+description = "A Space Invaders arcade machine emulator"
+repository = "https://github.com/andob/my-space-invaders-emulator"
+license = "Apache-2.0"
+
+[profile.release]
+opt-level = 3
+[profile.dev]
+opt-level = 3
+[profile.test]
+opt-level = 3
+[profile.bench]
+opt-level = 0
+
+[lib]
+crate-type = ["cdylib", "rlib"]
+
+[features]
+default = ["console_error_panic_hook"]
+
+[dependencies]
+emulator = { path = "../emulator" }
+
+# generic Result<> with any error
+anyhow = "1.0.95"
+
+# WASM support libs
+wasm-bindgen = "0.2.84"
+console_error_panic_hook = { version = "0.1.7", optional = true }
+
+# Web API
+web-sys = { version = "0.3.77", features = ["Window", "Document", "Element", "HtmlCanvasElement", "CanvasRenderingContext2d"] }

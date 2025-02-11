@@ -1,0 +1,25 @@
+[package]
+name = "target-linux"
+version = "0.1.0"
+edition = "2021"
+
+[profile.release]
+opt-level = 3
+[profile.dev]
+opt-level = 3
+[profile.test]
+opt-level = 3
+[profile.bench]
+opt-level = 0
+
+[dependencies]
+emulator = { path = "../emulator" }
+
+# generic Result<> with any error
+anyhow = "1.0.95"
+
+# Simple DirectMedia Layer bindings
+sdl2 = "0.37.0"
+
+#hashmap literal
+maplit2 = "1.0.5"

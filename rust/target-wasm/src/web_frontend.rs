@@ -1,20 +1,12 @@
 use anyhow::{Context, Result};
 use wasm_bindgen::JsCast;
 use web_sys::{window, CanvasRenderingContext2d, HtmlCanvasElement};
-use crate::codeloc;
-use crate::system::frontend::{Event, Frontend, ICanvas, IEventFetcher};
+use emulator::codeloc;
+use emulator::system::frontend::{Event, Frontend, ICanvas, IEventFetcher, Key};
 
-struct EventFetcher {}
-
-struct CanvasWrapper
+pub struct WebFrontend {}
+impl WebFrontend
 {
-    canvas : HtmlCanvasElement,
-    context : CanvasRenderingContext2d,
-}
-
-impl Frontend
-{
-    // #[cfg(any(target_arch = "wasm32", target_arch = "wasm64"))]
     pub fn new() -> Result<Frontend>
     {
         let window = window().context(codeloc!())?;
@@ -26,10 +18,16 @@ impl Frontend
 
         return Ok(Frontend
         {
-            event_fetcher: Box::new(EventFetcher {}),
+            event_fetcher: Box::new(EventFetcher::new()),
             canvas: Box::new(CanvasWrapper { canvas, context }),
         })
     }
+}
+
+struct CanvasWrapper
+{
+    canvas : HtmlCanvasElement,
+    context : CanvasRenderingContext2d,
 }
 
 impl ICanvas for CanvasWrapper
@@ -53,10 +51,47 @@ impl ICanvas for CanvasWrapper
     fn present(&mut self) {}
 }
 
+struct EventFetcher
+{
+    event_buffer : Vec<Event>
+}
+
+impl EventFetcher
+{
+    pub fn new() -> EventFetcher
+    {
+        return EventFetcher { event_buffer:Vec::new() };
+    }
+}
+
 impl IEventFetcher for EventFetcher
 {
+    fn notify(&mut self, event : Event)
+    {
+        self.event_buffer.push(event);
+    }
+
     fn fetch_events(&mut self) -> Vec<Event>
     {
-        return Vec::new();
+        let events = self.event_buffer.clone();
+        self.event_buffer.clear();
+        return events;
+    }
+}
+
+pub fn parse_js_key(js_key : String) -> Option<Key>
+{
+    return match js_key.to_uppercase().as_str()
+    {
+        "C" => Some(Key::INSERT_COIN),
+        "1" => Some(Key::SELECT_ONE_PLAYER),
+        "2" => Some(Key::SELECT_TWO_PLAYERS),
+        "ARROWLEFT" => Some(Key::PLAYER1_LEFT),
+        "ARROWRIGHT" => Some(Key::PLAYER1_RIGHT),
+        " " => Some(Key::PLAYER1_SHOOT),
+        "A" => Some(Key::PLAYER2_LEFT),
+        "D" => Some(Key::PLAYER2_RIGHT),
+        "S" => Some(Key::PLAYER2_SHOOT),
+        _ => None
     }
 }

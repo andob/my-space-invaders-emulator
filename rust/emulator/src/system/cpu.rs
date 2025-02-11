@@ -1,10 +1,8 @@
-use anyhow::{Context, Result};
-use web_sys::window;
-use crate::codeloc;
-use crate::system::address_from_high_low;
+use anyhow::Context;
+use crate::address_from_high_low;
 use crate::system::cpu::flags::CPUFlags;
 use crate::system::cpu::interrupts::CPUInterrupts;
-use crate::system::cpu::opcodes::build_opcodes_slice;
+use crate::system::cpu::opcodes::{build_opcodes_slice, Opcode};
 use crate::system::cpu::ram::{RAM, RAM_SIZE};
 use crate::system::cpu::stack::CPUStack;
 
@@ -36,11 +34,16 @@ pub struct CPU
     pub ram : RAM,
 }
 
+pub struct CPURunEnvironment
+{
+    opcodes : Box<[Opcode]>
+}
+
 impl CPU
 {
-    pub fn new(rom_bytes : &[u8]) -> CPU
+    pub fn new(rom_bytes : &[u8]) -> (CPU, CPURunEnvironment)
     {
-        return CPU
+        let cpu = CPU
         {
             A:0, B:0, C:0, D:0, E:0, H:0, L:0,
             program_counter: 0,
@@ -51,7 +54,10 @@ impl CPU
             shift_register_offset: 0,
             are_interrupts_enabled: true,
             ram: RAM::new(rom_bytes),
-        }
+        };
+
+        let opcodes = build_opcodes_slice();
+        return (cpu, CPURunEnvironment { opcodes });
     }
 
     pub fn next_byte(&mut self) -> u8
@@ -73,33 +79,21 @@ impl CPU
         return address_from_high_low(high, low);
     }
 
-    #[inline(always)]
-    pub fn run<F>(&mut self, mut callback : F) -> Result<()> where F : FnMut(&mut CPU) -> Result<()>
+    pub fn run_until_next_frame(&mut self, env : &CPURunEnvironment)
     {
-        let opcodes = build_opcodes_slice();
-
-        // loop
-        // {
-            for interrupt_number in [1u16, 2u16]
+        for interrupt_number in [1u16, 2u16]
+        {
+            let mut cycle_count = 0u16;
+            while cycle_count <= 16600
             {
-                let mut cycle_count = 0u16;
-                while cycle_count <= 16600
-                {
-                    let opcode = &opcodes[self.next_byte() as usize];
-                    // println!("{}", opcode.name);
-                    (opcode.lambda)(self);
+                let opcode = &env.opcodes[self.next_byte() as usize];
+                // println!("{}", opcode.name);
+                (opcode.lambda)(self);
 
-                    cycle_count += opcode.duration;
-                }
-
-                CPUInterrupts::interrupt(self, interrupt_number);
-
-                let result = callback(self);
-                if result.is_err() { return result }
+                cycle_count += opcode.duration;
             }
-        // }
 
-        return Ok(());
+            CPUInterrupts::interrupt(self, interrupt_number);
+        }
     }
-
 }

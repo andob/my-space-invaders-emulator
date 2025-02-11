@@ -1,24 +1,23 @@
-mod sdl_frontend;
-mod web_frontend;
+pub mod dummy_frontend;
 
 use anyhow::{anyhow, Result};
 use crate::system::cpu::CPU;
 use crate::system::cpu::ram::RAM;
 
-const DISPLAY_WIDTH : usize = 224;
-const DISPLAY_HEIGHT : usize = 256;
-const DISPLAY_START_ADDRESS : u16 = 0x2400;
-const DISPLAY_END_ADDRESS : u16 = 0x4000;
-const BLOCK_WIDTH : usize = 3;
-const BLOCK_HEIGHT : usize = 3;
+pub const DISPLAY_WIDTH : usize = 224;
+pub const DISPLAY_HEIGHT : usize = 256;
+pub const DISPLAY_START_ADDRESS : u16 = 0x2400;
+pub const DISPLAY_END_ADDRESS : u16 = 0x4000;
+pub const BLOCK_WIDTH : usize = 3;
+pub const BLOCK_HEIGHT : usize = 3;
 
 pub struct Frontend
 {
-    canvas : Box<dyn ICanvas>,
-    event_fetcher : Box<dyn IEventFetcher>,
+    pub canvas : Box<dyn ICanvas>,
+    pub event_fetcher : Box<dyn IEventFetcher>,
 }
 
-trait ICanvas
+pub trait ICanvas
 {
     fn clear(&mut self);
     fn set_draw_color(&mut self, r : u8, g : u8, b : u8);
@@ -26,19 +25,32 @@ trait ICanvas
     fn present(&mut self);
 }
 
-trait IEventFetcher
+pub trait IEventFetcher
 {
+    fn notify(&mut self, event : Event);
     fn fetch_events(&mut self) -> Vec<Event>;
 }
 
-enum Event
+#[derive(Copy, Clone)]
+pub enum Event
 {
-    Quit, KeyDown(Keycode), KeyUp(Keycode)
+    Quit, KeyDown(Key), KeyUp(Key)
 }
 
-enum Keycode
+#[derive(Copy, Clone)]
+pub struct Key { player : u8, code : u8 }
+
+impl Key
 {
-    C, A, S, D, Left, Right, Space, Kp1, Kp2, NUM_1, NUM_2
+    pub const INSERT_COIN : Key = Key { player:1, code:0 };
+    pub const SELECT_ONE_PLAYER : Key = Key { player:1, code:2 };
+    pub const SELECT_TWO_PLAYERS : Key = Key { player:1, code:1 };
+    pub const PLAYER1_SHOOT : Key = Key { player:1, code:4 };
+    pub const PLAYER1_LEFT : Key = Key { player:1, code:5 };
+    pub const PLAYER1_RIGHT : Key = Key { player:1, code:6 };
+    pub const PLAYER2_SHOOT : Key = Key { player:2, code:4 };
+    pub const PLAYER2_LEFT : Key = Key { player:2, code:5 };
+    pub const PLAYER2_RIGHT : Key = Key { player:2, code:6 };
 }
 
 impl Frontend
@@ -87,21 +99,15 @@ impl Frontend
             match event
             {
                 Event::Quit { .. } => { return Err(anyhow!("User quit!")); }
-                Event::KeyDown(keycode) =>
+                Event::KeyDown(key) =>
                 {
-                    if let Some((player, key)) = self.parse_keycode(keycode)
-                    {
-                        if player == 1 { cpu.in1 = cpu.in1 | 1u8 << key; }
-                        else if player == 2 { cpu.in2 = cpu.in2 | 1u8 << key; }
-                    }
+                    if key.player == 1 { cpu.in1 = cpu.in1 | 1u8 << key.code; }
+                    else if key.player == 2 { cpu.in2 = cpu.in2 | 1u8 << key.code; }
                 }
-                Event::KeyUp(keycode) =>
+                Event::KeyUp(key) =>
                 {
-                    if let Some((player, key)) = self.parse_keycode(keycode)
-                    {
-                        if player == 1 { cpu.in1 = cpu.in1 & !(1u8 << key); }
-                        else if player == 2 { cpu.in2 = cpu.in2 & !(1u8 << key); }
-                    }
+                    if key.player == 1 { cpu.in1 = cpu.in1 & !(1u8 << key.code); }
+                    else if key.player == 2 { cpu.in2 = cpu.in2 & !(1u8 << key.code); }
                 }
             }
         }
@@ -109,22 +115,8 @@ impl Frontend
         return Ok(());
     }
 
-    fn parse_keycode(&self, keycode : Keycode) -> Option<(u8, u8)>
+    pub fn notify(&mut self, event : Event)
     {
-        let (player, key) = match keycode
-        {
-            Keycode::C => (1, 0), //insert coin
-            Keycode::Kp1 | Keycode::NUM_1 => (1, 2), //1 player
-            Keycode::Kp2 | Keycode::NUM_2 => (1, 2), //2 players
-            Keycode::Space => (1, 4), //player 1 shoot
-            Keycode::Left => (1, 5), //player 1 left
-            Keycode::Right => (1, 6), //player 1 right
-            Keycode::S => (2, 4), //player 2 shoot
-            Keycode::A => (2, 5), //player 2 left
-            Keycode::D => (2, 6), //player 2 right
-            _ => return None
-        };
-
-        return Some((player, key));
+        self.event_fetcher.notify(event);
     }
 }
