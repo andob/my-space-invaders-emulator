@@ -1,6 +1,6 @@
 ## My Space Invaders arcade machine emulator
 
-This is a Space Invaders arcade machine emulator I wrote in C++, then ported to Rust.
+This is a Space Invaders arcade machine emulator I wrote in Rust.
 
 ### [Check out running project here](https://andob.io/space_invaders)
 
