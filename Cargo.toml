@@ -1,2 +1,10 @@
 [workspace]
-members = [ "emulator", "target-linux", "target-wasm" ]
+members = [
+    "emulator",
+    "target-wasm",
+    "target-linux",
+    "target-windows",
+    "target-macos",
+    "target-android",
+    "target-ios"
+]
