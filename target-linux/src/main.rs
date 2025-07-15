@@ -1,8 +1,9 @@
 mod sdl_frontend;
 
+use std::thread;
+use std::time::Duration;
 use anyhow::{Context, Result};
 use emulator::codeloc;
-use emulator::system::frontend::Frontend;
 use emulator::system::System;
 use crate::sdl_frontend::SDLFrontend;
 
@@ -12,5 +13,10 @@ fn main() -> Result<()>
 {
     let frontend = SDLFrontend::new().context(codeloc!())?;
     let mut system = System::new(ROM_BYTES, frontend);
-    return system.run();
+
+    loop
+    {
+        system.render_next_frame().context(codeloc!())?;
+        thread::sleep(Duration::from_millis(10));
+    }
 }

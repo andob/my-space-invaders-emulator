@@ -1,4 +1,4 @@
-use std::fmt::{Display, Formatter};
+use core::fmt::{Display, Formatter};
 
 pub struct CPUFlags
 {
@@ -65,7 +65,7 @@ impl PartialEq<CPUFlags> for CPUFlags
 
 impl Display for CPUFlags
 {
-    fn fmt(&self, f : &mut Formatter<'_>) -> std::fmt::Result
+    fn fmt(&self, f: &mut Formatter<'_>) -> core::fmt::Result
     {
         return write!(f, "negative:{} zero:{} even:{} carry:{}",
             self.negative, self.zero, self.even, self.carry);

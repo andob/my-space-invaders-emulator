@@ -6,5 +6,7 @@ members = [
     "target-windows",
     "target-macos",
     "target-android",
-    "target-ios"
+    "target-ios",
+    "target-qemu-x86_64",
+    "target-qemu-arm64"
 ]

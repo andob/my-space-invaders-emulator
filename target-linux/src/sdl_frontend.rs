@@ -91,7 +91,7 @@ impl EventFetcher
 
 impl IEventFetcher for EventFetcher
 {
-    fn notify(&mut self, event : Event) {}
+    fn notify(&mut self, _event : Event) {}
 
     fn fetch_events(&mut self) -> Vec<Event>
     {

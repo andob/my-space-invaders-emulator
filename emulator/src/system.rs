@@ -1,5 +1,3 @@
-use std::thread;
-use std::time::Duration;
 use anyhow::{Context, Result};
 use crate::codeloc;
 use crate::system::cpu::{CPURunEnvironment, CPU};
@@ -33,16 +31,6 @@ impl System
         self.frontend.handle_events(cpu).context(codeloc!())?;
 
         return Ok(());
-    }
-
-    pub fn run(&mut self) -> Result<()>
-    {
-        loop
-        {
-            self.render_next_frame().context(codeloc!())?;
-
-            thread::sleep(Duration::from_millis(10));
-        }
     }
 
     pub fn notify(&mut self, event : Event)

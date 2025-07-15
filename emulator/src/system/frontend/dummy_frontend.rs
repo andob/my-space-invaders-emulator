@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use crate::system::frontend::{Event, Frontend, ICanvas, IEventFetcher};
 
 pub struct DummyFrontend {}
@@ -19,13 +21,13 @@ impl DummyFrontend
 impl ICanvas for DummyFrontendCanvas
 {
     fn clear(&mut self) {}
-    fn set_draw_color(&mut self, r : u8, g : u8, b : u8) {}
-    fn fill_rect(&mut self, x : i32, y : i32, width : u32, height : u32) {}
+    fn set_draw_color(&mut self, _r : u8, _g : u8, _b : u8) {}
+    fn fill_rect(&mut self, _x : i32, _y : i32, _width : u32, _height : u32) {}
     fn present(&mut self) {}
 }
 
 impl IEventFetcher for DummyFrontendEventFetcher
 {
-    fn notify(&mut self, event : Event) {}
+    fn notify(&mut self, _event : Event) {}
     fn fetch_events(&mut self) -> Vec<Event> { Vec::new() }
 }

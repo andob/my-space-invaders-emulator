@@ -1,3 +1,5 @@
+use alloc::boxed::Box;
+use alloc::string::String;
 use crate::system::cpu::CPU;
 use crate::system::cpu::flags::CPUFlags;
 use crate::system::cpu::registers::CPURegister;
@@ -21,7 +23,7 @@ macro_rules! opcode
         Opcode
         {
             key: $key, lambda: $name,
-            name: stringify!($name).to_string(),
+            name: String::from(stringify!($name)),
             duration: $duration,
         }
     }

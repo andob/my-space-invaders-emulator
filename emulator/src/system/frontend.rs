@@ -1,5 +1,7 @@
 pub mod dummy_frontend;
 
+use alloc::boxed::Box;
+use alloc::vec::Vec;
 use anyhow::{anyhow, Result};
 use crate::system::cpu::CPU;
 use crate::system::cpu::ram::RAM;

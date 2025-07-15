@@ -1,4 +1,5 @@
-use std::ops::{Index, IndexMut};
+use alloc::boxed::Box;
+use core::ops::{Index, IndexMut};
 
 pub const RAM_SIZE : usize = 0x10000; //64KB
 

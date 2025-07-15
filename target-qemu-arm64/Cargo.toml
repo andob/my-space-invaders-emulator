@@ -1,5 +1,5 @@
 [package]
-name = "target-linux"
+name = "target-qemu-arm64"
 version = "0.1.0"
 edition = "2021"
 
@@ -17,9 +17,3 @@ emulator = { path = "../emulator" }
 
 # generic Result<> with any error
 anyhow = "1.0.95"
-
-# Simple DirectMedia Layer bindings
-sdl2 = "0.38.0"
-
-#hashmap literal
-maplit2 = "1.0.5"
