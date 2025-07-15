@@ -89,7 +89,7 @@ impl LinuxFrontend
         });
 
         let event_fetcher = Box::new(EventFetcher::new(connection_ref));
-        return Ok(Frontend { canvas, event_fetcher });
+        return Ok(Frontend::new(canvas, event_fetcher));
     }
 }
 
@@ -183,8 +183,6 @@ impl EventFetcher
 
 impl IEventFetcher for EventFetcher
 {
-    fn notify(&mut self, _event : Event) {}
-
     fn fetch_events(&mut self) -> Vec<Event>
     {
         let mut output_events = Vec::new();

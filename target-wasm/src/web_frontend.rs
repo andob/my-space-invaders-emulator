@@ -2,7 +2,8 @@ use anyhow::{Context, Result};
 use wasm_bindgen::JsCast;
 use web_sys::{window, CanvasRenderingContext2d, HtmlCanvasElement};
 use emulator::codeloc;
-use emulator::system::frontend::{Event, Frontend, ICanvas, IEventFetcher, Key};
+use emulator::system::frontend::{Frontend, ICanvas, Key};
+use emulator::system::frontend::dummy_frontend::DummyFrontendEventFetcher;
 
 pub struct WebFrontend {}
 impl WebFrontend
@@ -16,11 +17,9 @@ impl WebFrontend
         let context = canvas.get_context("2d").ok().context(codeloc!())?.unwrap();
         let context = context.dyn_into::<CanvasRenderingContext2d>().ok().context(codeloc!())?;
 
-        return Ok(Frontend
-        {
-            event_fetcher: Box::new(EventFetcher::new()),
-            canvas: Box::new(CanvasWrapper::new(canvas, context)),
-        })
+        let canvas = Box::new(CanvasWrapper::new(canvas, context));
+        let event_fetcher = Box::new(DummyFrontendEventFetcher{});
+        return Ok(Frontend::new(canvas, event_fetcher));
     }
 }
 
@@ -59,34 +58,6 @@ impl ICanvas for CanvasWrapper
     }
 
     fn present(&mut self) -> Result<()> { Ok(()) }
-}
-
-struct EventFetcher
-{
-    event_buffer : Vec<Event>
-}
-
-impl EventFetcher
-{
-    pub fn new() -> EventFetcher
-    {
-        return EventFetcher { event_buffer: Vec::new() };
-    }
-}
-
-impl IEventFetcher for EventFetcher
-{
-    fn notify(&mut self, event : Event)
-    {
-        self.event_buffer.push(event);
-    }
-
-    fn fetch_events(&mut self) -> Vec<Event>
-    {
-        let events = self.event_buffer.clone();
-        self.event_buffer.clear();
-        return events;
-    }
 }
 
 pub fn parse_js_key(js_key : String) -> Option<Key>

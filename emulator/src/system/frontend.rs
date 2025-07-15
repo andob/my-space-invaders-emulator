@@ -20,7 +20,16 @@ pub const WINDOW_TITLE : &str = "Space Invaders";
 pub struct Frontend
 {
     pub canvas : Box<dyn ICanvas>,
+    external_event_buffer : Vec<Event>,
     pub event_fetcher : Box<dyn IEventFetcher>,
+}
+
+impl Frontend
+{
+    pub fn new(canvas : Box<dyn ICanvas>, event_fetcher : Box<dyn IEventFetcher>) -> Frontend
+    {
+        return Frontend { canvas, external_event_buffer: Vec::new(), event_fetcher };
+    }
 }
 
 pub trait ICanvas
@@ -33,7 +42,6 @@ pub trait ICanvas
 
 pub trait IEventFetcher
 {
-    fn notify(&mut self, event : Event);
     fn fetch_events(&mut self) -> Vec<Event>;
 }
 
@@ -98,7 +106,15 @@ impl Frontend
 
     pub fn handle_events(&mut self, cpu : &mut CPU)
     {
-        for event in self.event_fetcher.fetch_events()
+        let events =
+        [
+            self.external_event_buffer.clone(),
+            self.event_fetcher.fetch_events(),
+        ].concat();
+
+        self.external_event_buffer.clear();
+        
+        for event in events
         {
             match event
             {
@@ -118,6 +134,6 @@ impl Frontend
 
     pub fn notify(&mut self, event : Event)
     {
-        self.event_fetcher.notify(event);
+        self.external_event_buffer.push(event);
     }
 }

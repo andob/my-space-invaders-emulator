@@ -4,18 +4,16 @@ use anyhow::Result;
 use crate::system::frontend::{Event, Frontend, ICanvas, IEventFetcher};
 
 pub struct DummyFrontend {}
-struct DummyFrontendCanvas {}
-struct DummyFrontendEventFetcher {}
+pub struct DummyFrontendCanvas {}
+pub struct DummyFrontendEventFetcher {}
 
 impl DummyFrontend
 {
     pub fn new() -> Frontend
     {
-        return Frontend
-        {
-            canvas: Box::new(DummyFrontendCanvas{}),
-            event_fetcher: Box::new(DummyFrontendEventFetcher{}),
-        }
+        let canvas = Box::new(DummyFrontendCanvas{});
+        let event_fetcher = Box::new(DummyFrontendEventFetcher{});
+        return Frontend::new(canvas, event_fetcher);
     }
 }
 
@@ -29,6 +27,5 @@ impl ICanvas for DummyFrontendCanvas
 
 impl IEventFetcher for DummyFrontendEventFetcher
 {
-    fn notify(&mut self, _event : Event) {}
     fn fetch_events(&mut self) -> Vec<Event> { Vec::new() }
 }

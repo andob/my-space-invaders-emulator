@@ -17,6 +17,6 @@ fn main() -> Result<()>
     loop
     {
         system.render_next_frame().context(codeloc!())?;
-        thread::sleep(Duration::from_micros(250));
+        thread::sleep(Duration::from_micros(500));
     }
 }
