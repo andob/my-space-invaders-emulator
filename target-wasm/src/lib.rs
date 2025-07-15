@@ -2,7 +2,6 @@ mod web_frontend;
 
 use std::cell::RefCell;
 use std::rc::Rc;
-use anyhow::Context;
 use wasm_bindgen::prelude::wasm_bindgen;
 use emulator::system::frontend::dummy_frontend::DummyFrontend;
 use emulator::system::frontend::Event;

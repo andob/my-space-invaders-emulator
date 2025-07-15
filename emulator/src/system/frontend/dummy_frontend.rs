@@ -1,5 +1,6 @@
 use alloc::boxed::Box;
 use alloc::vec::Vec;
+use anyhow::Result;
 use crate::system::frontend::{Event, Frontend, ICanvas, IEventFetcher};
 
 pub struct DummyFrontend {}
@@ -23,7 +24,7 @@ impl ICanvas for DummyFrontendCanvas
     fn clear(&mut self) {}
     fn set_draw_color(&mut self, _r : u8, _g : u8, _b : u8) {}
     fn fill_rect(&mut self, _x : i32, _y : i32, _width : u32, _height : u32) {}
-    fn present(&mut self) {}
+    fn present(&mut self) -> Result<()> { Ok(()) }
 }
 
 impl IEventFetcher for DummyFrontendEventFetcher

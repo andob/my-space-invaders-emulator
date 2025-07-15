@@ -1,3 +1,4 @@
+use alloc::string::String;
 use anyhow::{Context, Result};
 use crate::codeloc;
 use crate::system::cpu::{CPURunEnvironment, CPU};
@@ -16,7 +17,12 @@ impl System
 {
     pub fn new(rom_bytes : &[u8], frontend : Frontend) -> System
     {
-        return System { cpu: CPU::new(rom_bytes), frontend };
+        return System::new_verbose(rom_bytes, frontend, |_| {});
+    }
+
+    pub fn new_verbose(rom_bytes : &[u8], frontend : Frontend, logger : fn(&String) -> ()) -> System
+    {
+        return System { cpu: CPU::new(rom_bytes, logger), frontend };
     }
 
     pub fn render_next_frame(&mut self) -> Result<()>
@@ -28,7 +34,7 @@ impl System
 
         self.frontend.render_frame(&cpu.ram).context(codeloc!())?;
 
-        self.frontend.handle_events(cpu).context(codeloc!())?;
+        self.frontend.handle_events(cpu);
 
         return Ok(());
     }

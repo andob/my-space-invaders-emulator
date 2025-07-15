@@ -18,8 +18,8 @@ emulator = { path = "../emulator" }
 # generic Result<> with any error
 anyhow = "1.0.95"
 
-# Simple DirectMedia Layer bindings
-sdl2 = "0.38.0"
+# X client bindings
+xcb = "1.5.0"
 
-#hashmap literal
+# hashmap! macro
 maplit2 = "1.0.5"

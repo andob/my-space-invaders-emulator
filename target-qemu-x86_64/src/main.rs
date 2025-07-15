@@ -1,6 +1,4 @@
 #![no_std]
-
-#[macro_use]
 extern crate alloc;
 
 use alloc::format;
@@ -20,6 +18,5 @@ fn main() -> Result<()>
     loop
     {
         system.render_next_frame().context(codeloc!())?;
-        //todo sleep
     }
 }

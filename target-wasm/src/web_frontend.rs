@@ -19,7 +19,7 @@ impl WebFrontend
         return Ok(Frontend
         {
             event_fetcher: Box::new(EventFetcher::new()),
-            canvas: Box::new(CanvasWrapper { canvas, context }),
+            canvas: Box::new(CanvasWrapper::new(canvas, context)),
         })
     }
 }
@@ -30,11 +30,21 @@ struct CanvasWrapper
     context : CanvasRenderingContext2d,
 }
 
+impl CanvasWrapper
+{
+    pub fn new(canvas : HtmlCanvasElement, context : CanvasRenderingContext2d) -> CanvasWrapper
+    {
+        return CanvasWrapper { canvas, context };
+    }
+}
+
 impl ICanvas for CanvasWrapper
 {
     fn clear(&mut self)
     {
-        self.context.clear_rect(0f64, 0f64, self.canvas.width() as f64, self.canvas.height() as f64);
+        let canvas_width = self.canvas.width() as f64;
+        let canvas_height = self.canvas.height() as f64;
+        self.context.clear_rect(0f64, 0f64, canvas_width, canvas_height);
     }
 
     fn set_draw_color(&mut self, r : u8, g : u8, b : u8)
@@ -48,7 +58,7 @@ impl ICanvas for CanvasWrapper
         self.context.fill_rect(x as f64, y as f64, width as f64, height as f64);
     }
 
-    fn present(&mut self) {}
+    fn present(&mut self) -> Result<()> { Ok(()) }
 }
 
 struct EventFetcher
@@ -60,7 +70,7 @@ impl EventFetcher
 {
     pub fn new() -> EventFetcher
     {
-        return EventFetcher { event_buffer:Vec::new() };
+        return EventFetcher { event_buffer: Vec::new() };
     }
 }
 

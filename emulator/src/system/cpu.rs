@@ -1,4 +1,5 @@
 use alloc::boxed::Box;
+use alloc::string::String;
 use crate::address_from_high_low;
 use crate::system::cpu::flags::CPUFlags;
 use crate::system::cpu::interrupts::CPUInterrupts;
@@ -36,12 +37,13 @@ pub struct CPU
 
 pub struct CPURunEnvironment
 {
-    opcodes : Box<[Opcode]>
+    opcodes : Box<[Opcode]>,
+    opcode_logger : fn(&String) -> (),
 }
 
 impl CPU
 {
-    pub fn new(rom_bytes : &[u8]) -> (CPU, CPURunEnvironment)
+    pub fn new(rom_bytes : &[u8], opcode_logger : fn(&String) -> ()) -> (CPU, CPURunEnvironment)
     {
         let cpu = CPU
         {
@@ -57,7 +59,7 @@ impl CPU
         };
 
         let opcodes = build_opcodes_slice();
-        return (cpu, CPURunEnvironment { opcodes });
+        return (cpu, CPURunEnvironment { opcodes, opcode_logger });
     }
 
     pub fn next_byte(&mut self) -> u8
@@ -87,7 +89,7 @@ impl CPU
             while cycle_count <= 16600
             {
                 let opcode = &env.opcodes[self.next_byte() as usize];
-                // println!("{}", opcode.name);
+                (env.opcode_logger)(&opcode.name);
                 (opcode.lambda)(self);
 
                 cycle_count += opcode.duration;

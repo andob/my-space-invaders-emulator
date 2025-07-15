@@ -1,10 +1,7 @@
 #![no_std]
-
-#[macro_use]
 extern crate alloc;
 
 use alloc::format;
-use core::time::Duration;
 use anyhow::{Context, Result};
 use emulator::codeloc;
 use emulator::system::frontend::dummy_frontend::DummyFrontend;
@@ -21,6 +18,5 @@ fn main() -> Result<()>
     loop
     {
         system.render_next_frame().context(codeloc!())?;
-        //todo sleep
     }
 }

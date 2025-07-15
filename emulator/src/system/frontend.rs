@@ -2,7 +2,8 @@ pub mod dummy_frontend;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;
-use anyhow::{anyhow, Result};
+use anyhow::{Context, Result};
+use crate::codeloc;
 use crate::system::cpu::CPU;
 use crate::system::cpu::ram::RAM;
 
@@ -12,6 +13,9 @@ pub const DISPLAY_START_ADDRESS : u16 = 0x2400;
 pub const DISPLAY_END_ADDRESS : u16 = 0x4000;
 pub const BLOCK_WIDTH : usize = 3;
 pub const BLOCK_HEIGHT : usize = 3;
+pub const WINDOW_WIDTH : usize = DISPLAY_WIDTH * BLOCK_WIDTH;
+pub const WINDOW_HEIGHT : usize = DISPLAY_HEIGHT * BLOCK_HEIGHT;
+pub const WINDOW_TITLE : &str = "Space Invaders";
 
 pub struct Frontend
 {
@@ -24,7 +28,7 @@ pub trait ICanvas
     fn clear(&mut self);
     fn set_draw_color(&mut self, r : u8, g : u8, b : u8);
     fn fill_rect(&mut self, x : i32, y : i32, width : u32, height : u32);
-    fn present(&mut self);
+    fn present(&mut self) -> Result<()>;
 }
 
 pub trait IEventFetcher
@@ -34,10 +38,7 @@ pub trait IEventFetcher
 }
 
 #[derive(Copy, Clone)]
-pub enum Event
-{
-    Quit, KeyDown(Key), KeyUp(Key)
-}
+pub enum Event { KeyDown(Key), KeyUp(Key) }
 
 #[derive(Copy, Clone)]
 pub struct Key { player : u8, code : u8 }
@@ -84,23 +85,23 @@ impl Frontend
 
                     let x = (ix * BLOCK_WIDTH) as i32;
                     let y = ((DISPLAY_HEIGHT - iy - bit_index) * BLOCK_HEIGHT) as i32;
-                    self.canvas.fill_rect(x, y, BLOCK_WIDTH as u32, BLOCK_HEIGHT as u32);
+                    let (width, height) = (BLOCK_WIDTH as u32, BLOCK_HEIGHT as u32);
+                    self.canvas.fill_rect(x, y, width, height);
                 }
             }
         }
 
-        self.canvas.present();
+        self.canvas.present().context(codeloc!())?;
 
         return Ok(());
     }
 
-    pub fn handle_events(&mut self, cpu : &mut CPU) -> Result<()>
+    pub fn handle_events(&mut self, cpu : &mut CPU)
     {
         for event in self.event_fetcher.fetch_events()
         {
             match event
             {
-                Event::Quit { .. } => { return Err(anyhow!("User quit!")); }
                 Event::KeyDown(key) =>
                 {
                     if key.player == 1 { cpu.in1 = cpu.in1 | 1u8 << key.code; }
@@ -113,8 +114,6 @@ impl Frontend
                 }
             }
         }
-
-        return Ok(());
     }
 
     pub fn notify(&mut self, event : Event)
