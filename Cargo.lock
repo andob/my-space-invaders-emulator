@@ -136,14 +136,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "target-ios"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "emulator",
-]
-
-[[package]]
 name = "target-linux"
 version = "0.1.0"
 dependencies = [

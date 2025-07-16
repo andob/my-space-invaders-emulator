@@ -4,9 +4,8 @@ members = [
     "target-wasm",
     "target-linux",
     "target-windows",
-    "target-macos",
+    "target-apple",
     "target-android",
-    "target-ios",
     "target-qemu-x86_64",
     "target-qemu-arm64"
 ]
