@@ -1,4 +1,5 @@
 pub mod dummy_frontend;
+pub mod unsafe_frontend;
 
 use alloc::boxed::Box;
 use alloc::vec::Vec;

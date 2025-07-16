@@ -1,21 +1,22 @@
+mod windows_frontend;
+
 use std::thread;
 use std::time::Duration;
 use anyhow::{Context, Result};
 use emulator::codeloc;
-use emulator::system::frontend::dummy_frontend::DummyFrontend;
 use emulator::system::System;
+use crate::windows_frontend::WindowsFrontend;
 
 const ROM_BYTES : &[u8] = include_bytes!("../../game.rom");
 
 fn main() -> Result<()>
 {
-    //todo implement windows frontend
-    let frontend = DummyFrontend::new();
+    let frontend = WindowsFrontend::new().context(codeloc!())?;
     let mut system = System::new(ROM_BYTES, frontend);
 
     loop
     {
         system.render_next_frame().context(codeloc!())?;
-        thread::sleep(Duration::from_millis(10));
+        thread::sleep(Duration::from_micros(500));
     }
 }
