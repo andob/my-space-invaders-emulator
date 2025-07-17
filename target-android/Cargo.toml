@@ -12,8 +12,39 @@ opt-level = 3
 [profile.bench]
 opt-level = 0
 
+[lib]
+crate-type = ["cdylib"]
+
+[package.metadata.android]
+package = "ro.andob.spaceinvaders"
+apk_name = "SpaceInvaders"
+
+[package.metadata.android.sdk]
+min_sdk_version = 26
+target_sdk_version = 35
+max_sdk_version = 35
+
+[package.metadata.android.application]
+label = "Space Invaders"
+
+[package.metadata.android.application.activity]
+config_changes = "mcc|mnc|locale|touchscreen|keyboard|keyboardHidden|navigation|screenLayout|fontScale|uiMode|orientation|density|screenSize|smallestScreenSize|layoutDirection"
+launch_mode = "singleInstance"
+orientation = "portrait"
+resizeable_activity = false
+exported = true
+
 [dependencies]
 emulator = { path = "../emulator" }
 
 # generic Result<> with any error
 anyhow = "1.0.95"
+
+# Android NDK
+ndk = "0.9.0"
+log = "0.4.27"
+android_logger = "0.15.1"
+android-activity = { version = "0.6.0", features = ["native-activity"] }
+
+# hashmap! macro
+maplit2 = "1.0.5"
