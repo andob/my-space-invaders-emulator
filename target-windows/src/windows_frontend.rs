@@ -178,8 +178,8 @@ impl EventFetcher
             VK_RIGHT.0 => Key::PLAYER1_RIGHT,
             VK_SPACE.0 => Key::PLAYER1_SHOOT,
             VK_A.0 => Key::PLAYER2_LEFT,
-            VK_S.0 => Key::PLAYER2_RIGHT,
-            VK_D.0 => Key::PLAYER2_SHOOT,
+            VK_D.0 => Key::PLAYER2_RIGHT,
+            VK_S.0 => Key::PLAYER2_SHOOT,
         };
 
         return EventFetcher { handle_to_window, keymap };

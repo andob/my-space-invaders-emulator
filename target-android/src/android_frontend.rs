@@ -134,7 +134,7 @@ impl EventFetcher
             Keycode::DpadRight.into() => Key::PLAYER1_RIGHT,
             Keycode::Space.into() => Key::PLAYER1_SHOOT,
             Keycode::A.into() => Key::PLAYER2_LEFT,
-            Keycode::D.into() => Key::PLAYER2_RIGHT, //todo D should be right
+            Keycode::D.into() => Key::PLAYER2_RIGHT,
             Keycode::S.into() => Key::PLAYER2_SHOOT,
         };
 
@@ -154,8 +154,6 @@ impl IEventFetcher for EventFetcher
             {
                 if let InputEvent::KeyEvent(event) = event
                 {
-                    //todo external linter
-                    //todo use if let chains
                     if event.action() == KeyAction::Down
                     {
                         if let Some(key) = self.keymap.get(&event.key_code().into())

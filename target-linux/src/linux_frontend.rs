@@ -173,8 +173,8 @@ impl EventFetcher
             /*→*/ 0x72 => Key::PLAYER1_RIGHT,
             /* */ 0x41 => Key::PLAYER1_SHOOT,
             /*A*/ 0x26 => Key::PLAYER2_LEFT,
-            /*S*/ 0x27 => Key::PLAYER2_RIGHT,
-            /*D*/ 0x28 => Key::PLAYER2_SHOOT,
+            /*D*/ 0x28 => Key::PLAYER2_RIGHT,
+            /*S*/ 0x27 => Key::PLAYER2_SHOOT,
         };
 
         return EventFetcher { connection, keymap };
