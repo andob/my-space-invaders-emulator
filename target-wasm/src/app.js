@@ -16,7 +16,7 @@ import init, * as emulator from './target_wasm.js';
 function emulate()
 {
     emulator.render_next_frame();
-    setTimeout(() => emulate());
+    requestAnimationFrame(emulate);
 }
 
 function show_about_dialog()

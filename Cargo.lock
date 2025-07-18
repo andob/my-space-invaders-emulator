@@ -611,22 +611,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "target-qemu-arm64"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "emulator",
-]
-
-[[package]]
-name = "target-qemu-x86_64"
-version = "0.1.0"
-dependencies = [
- "anyhow",
- "emulator",
-]
-
-[[package]]
 name = "target-wasm"
 version = "0.1.0"
 dependencies = [

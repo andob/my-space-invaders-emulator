@@ -1,11 +1,9 @@
 [workspace]
 members = [
     "emulator",
-    "target-wasm",
-    "target-linux",
-    "target-windows",
-    "target-apple",
     "target-android",
-    "target-qemu-x86_64",
-    "target-qemu-arm64"
+    "target-apple",
+    "target-linux",
+    "target-wasm",
+    "target-windows",
 ]
